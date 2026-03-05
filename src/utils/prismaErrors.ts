@@ -1,0 +1,34 @@
+import { Prisma } from '@prisma/client';
+import { AppError } from './AppError.js';
+
+export const isPrismaError = (err: unknown): err is Prisma.PrismaClientKnownRequestError => {
+  return err instanceof Prisma.PrismaClientKnownRequestError;
+};
+
+export const handlePrismaError = (err: unknown, context: string): never => {
+  if (!isPrismaError(err)) throw err;
+
+  switch (err.code) {
+    case 'P2002': {
+      throw new AppError(
+        `${context} already exists$`,
+        409,
+        `DUPLICATE_${context.toUpperCase()}_409`
+      );
+    }
+    case 'P2003':
+      throw new AppError(
+        `${context} is referenced by other records`,
+        409,
+        `${context.toUpperCase()}_REFERENCED_409`
+      );
+    case 'P2025':
+      throw new AppError(
+        `${context} does not exist`,
+        404,
+        `${context.toUpperCase()}_NOT_FOUND_404`
+      );
+    default:
+      throw err;
+  }
+};

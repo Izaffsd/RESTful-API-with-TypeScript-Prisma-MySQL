@@ -1,0 +1,39 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model Course {
+  courseId   Int      @id @default(autoincrement()) @map("course_id")
+  courseCode String   @unique @map("course_code") @db.VarChar(6)
+  courseName String   @map("course_name") @db.VarChar(100)
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  students   Student[]
+
+  @@map("courses")
+}
+
+model Student {
+  studentId     Int      @id @default(autoincrement()) @map("student_id")
+  studentNumber String   @unique @map("student_number") @db.VarChar(10)
+  mykadNumber   String   @unique @map("mykad_number") @db.Char(12)
+  email         String   @unique @db.VarChar(255)
+  studentName   String   @map("student_name") @db.VarChar(100)
+  address       String?  @db.Text
+  gender        Gender?
+  courseId      Int      @map("course_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  course        Course   @relation(fields: [courseId], references: [courseId], onDelete: Restrict, onUpdate: Cascade)
+
+  @@map("student")
+}
+
+enum Gender {
+  Male
+  Female
+}
