@@ -15,12 +15,11 @@ export const connectDB = async (): Promise<void> => {
   try {
     await prisma.$connect()
     await prisma.$queryRaw`SELECT 1`
-    console.log('MySQL database connected successfully')
+    logger.info('MySQL database connected successfully')
   } catch (err) {
     logger.error({ message: 'MySQL connection error', err })
     process.exit(1)
   }
 }
-
 
 export default prisma

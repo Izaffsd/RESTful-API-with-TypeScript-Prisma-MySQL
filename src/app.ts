@@ -1,11 +1,15 @@
 import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
+import helmet from 'helmet';
 import routes from './routes/index.js';
 import { errorHandler } from './middleware/errorHandler.middleware.js';
+import { response } from './utils/response.js';
 
 const app = express()
 
+// Secure HTTP headers & hide Express fingerprint
+app.use(helmet())
 app.use(morgan('dev'))
 app.use(cors({
   origin: ['http://localhost:3000', 'https://devlopmentserver.com'], // dev server process.env.CORS_ORIGINS?
@@ -18,13 +22,7 @@ app.use('/api', routes);
 app.use(express.static('public'))
 
 app.use((_req, res) => {
-  res.status(404).json({
-    statusCode: 404,
-    success: false,
-    message: 'Resource not found',
-    errorCode: 'RESOURCE_NOT_FOUND_404',
-    timestamp: new Date().toISOString(),
-  });
+  response(res, 404, 'Resource not found', null, 'RESOURCE_NOT_FOUND_404')
 });
 
 app.use(errorHandler)

@@ -8,6 +8,7 @@ export const errorHandler = (err: Error, req: Request, res: Response, _next: Nex
   const statusCode = isAppError ? err.statusCode : 500;
   const errorCode = isAppError ? err.errorCode : 'INTERNAL_SERVER_ERROR_500';
   const message = isAppError ? err.message : 'Internal Server Error';
+  const errors = isAppError && err.details ? err.details : [];
 
   logger.error({
     message,
@@ -24,5 +25,5 @@ export const errorHandler = (err: Error, req: Request, res: Response, _next: Nex
     timestamp: new Date().toISOString(),
   });
 
-  response(res, statusCode, message, null, errorCode);
+  response(res, statusCode, message, null, errorCode, errors);
 };

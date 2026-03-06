@@ -1,11 +1,6 @@
 import { z } from 'zod'
 import fs from 'node:fs'
-import path from 'node:path'
-import { fileURLToPath } from 'node:url'
 import 'dotenv/config'
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const logsDir = path.join(__dirname, '..', '..', 'logs')
 
 const envSchema = z.object({
   PORT: z.coerce.number({ message: 'PORT is required' }),
@@ -17,21 +12,17 @@ const envSchema = z.object({
   DB_NAME: z.string().min(1, 'DB_NAME is required'),
 })
 
+const logError = (message: string, data: unknown) => {
+  const entry = JSON.stringify({ level: 'error', message, data, timestamp: new Date().toISOString() }) + '\n'
+  fs.mkdirSync('logs', { recursive: true })
+  fs.appendFileSync('logs/error.log', entry)
+}
+
 const result = envSchema.safeParse(process.env)
 if (!result.success) {
   console.error('Invalid environment configuration')
   console.error(result.error.issues)
-
-  const logEntry = JSON.stringify({
-    level: 'error',
-    message: 'Invalid environment variables',
-    issues: result.error.issues,
-    timestamp: new Date().toISOString(),
-  }) + '\n'
-
-  fs.mkdirSync(logsDir, { recursive: true })
-  fs.appendFileSync(path.join(logsDir, 'error.log'), logEntry)
-
+  logError('Invalid environment variables', result.error.issues)
   process.exit(1)
 }
 

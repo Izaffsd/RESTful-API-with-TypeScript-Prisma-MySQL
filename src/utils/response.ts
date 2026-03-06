@@ -1,13 +1,16 @@
 import type { Response } from 'express';
+import type { ErrorDetail } from './AppError.js';
 
 export const response = (
   res: Response,
   statusCode: number,
   message = '',
-  data: unknown = null,
-  errorCode: string | null = null ): Response => {
+  data: unknown = null, // unknown allows null
+  errorCode: string | null = null, // string alone doesn't allow null
+  errors: ErrorDetail[] = [] ): Response => {
 
   const success = statusCode < 400;
+  // Built-in type key(string) -> value(anything)
   const resBody: Record<string, unknown> = { statusCode, success, message };
   
   if (success && data !== null && data !== undefined) {
@@ -16,7 +19,7 @@ export const response = (
   if (!success && errorCode) {
     resBody.errorCode = errorCode;
     resBody.timestamp = new Date().toISOString();
-    resBody.errors = [];
+    resBody.errors = errors;
   }
   return res.status(statusCode).json(resBody);
 };

@@ -5,7 +5,7 @@ export function extractStudentNumberPrefix(studentNumber: string): string | null
   return match ? match[1] : null;
 }
 
-const idParam = z.string().regex(/^\d+$/, 'ID must be a number').transform(Number);
+const idParam = z.coerce.number('ID must be a number').int().positive();
 
 const studentNumber = z
   .string()
@@ -46,21 +46,21 @@ const studentName = z
 export const getStudentByIdSchema = z.object({ studentId: idParam });
 
 export const createStudentSchema = z.object({
-  studentNumber,
-  mykadNumber,
-  email,
   studentName,
+  studentNumber,
+  email,
+  mykadNumber,
   address: z.string().max(255).trim().optional().nullable(),
   gender: z.enum(['Male', 'Female']).optional().nullable(),
 });
 
 export const updateStudentSchema = z.object({
-  studentNumber: studentNumber,
-  mykadNumber,
   studentName,
+  studentNumber,
+  email,
+  mykadNumber,
   address: z.string().max(255).trim().optional().nullable(),
   gender: z.enum(['Male', 'Female']).optional().nullable(),
-
 });
 
 export const deleteStudentSchema = z.object({ studentId: idParam });

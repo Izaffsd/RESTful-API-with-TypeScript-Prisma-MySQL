@@ -19,7 +19,6 @@ router.get('/health', async (_req, res) => {
   try {
     await prisma.$queryRaw`SELECT 1`;
     return response(res, 200, 'Health check OK', {
-      status: 'OK',
       database: 'connected',
       timestamp: new Date().toISOString(),
     })
@@ -28,6 +27,13 @@ router.get('/health', async (_req, res) => {
     return response(res, 500, 'Health check failed', null, 'HEALTH_CHECK_FAILED_500')
   }
 })
+
+// // Only in development: trigger 500 to test error handler (passes to errorHandler middleware)
+if (process.env.NODE_ENV === 'development') {
+  router.get('/test-error', (_req, _res, next) => {
+    next(new Error('Test internal server error'))
+  })
+}
 
 router.use(studentsRoutes)
 router.use(coursesRoutes)
