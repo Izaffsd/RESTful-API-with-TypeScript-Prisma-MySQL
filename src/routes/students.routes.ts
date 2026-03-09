@@ -1,24 +1,17 @@
 import { Router } from 'express'
 import * as studentsController from '../controllers/students.controller.js'
 import { validateZod } from '../middleware/validateZod.middleware.js'
-import { paginationSchema } from '../validations/paginationSchema.js'
-import {
-  getStudentByIdSchema,
-  createStudentSchema,
-  updateStudentSchema,
-  deleteStudentSchema,
-} from '../validations/studentValidation.js'
+import { authenticate, authorize, requireVerifiedEmail } from '../middleware/auth.middleware.js'
+import { studentParamsSchema, studentQuerySchema, createStudentSchema, updateStudentSchema } from '../validations/studentValidation.js'
 
 const router = Router()
 
-router.get('/students', validateZod(paginationSchema, 'query'), studentsController.getAllStudents)
-router.get('/students/:studentId', validateZod(getStudentByIdSchema, 'params'), studentsController.getStudentById)
+router.use(authenticate, requireVerifiedEmail)
 
-// POST routes
-router.post('/students', validateZod(createStudentSchema, 'body'), studentsController.createStudent)
-
-router.put('/students/:studentId', validateZod(getStudentByIdSchema, 'params'), validateZod(updateStudentSchema, 'body'), studentsController.updateStudent)
-
-router.delete('/students/:studentId', validateZod(deleteStudentSchema, 'params'), studentsController.deleteStudent)
+router.get('/', authorize('LECTURER', 'HEAD_LECTURER'), validateZod(studentQuerySchema, 'query'), studentsController.getAllStudents)
+router.get('/:studentId', authorize('LECTURER', 'HEAD_LECTURER'), validateZod(studentParamsSchema, 'params'), studentsController.getStudentById)
+router.post('/', authorize('HEAD_LECTURER'), validateZod(createStudentSchema, 'body'), studentsController.createStudent)
+router.patch('/:studentId', authorize('HEAD_LECTURER'), validateZod(studentParamsSchema, 'params'), validateZod(updateStudentSchema, 'body'), studentsController.updateStudent)
+router.delete('/:studentId', authorize('HEAD_LECTURER'), validateZod(studentParamsSchema, 'params'), studentsController.deleteStudent)
 
 export default router

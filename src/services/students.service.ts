@@ -1,118 +1,128 @@
+import bcrypt from 'bcrypt'
 import prisma from '../config/db.js'
 import { AppError } from '../utils/AppError.js'
 import { handlePrismaError } from '../utils/prismaErrors.js'
-import { extractStudentNumberPrefix } from '../validations/studentValidation.js'
 
-const studentInclude = { course: true } as const // TS sees permanently true
+const studentInclude = {
+  user: { select: { userId: true, name: true, email: true, status: true } },
+  course: { select: { courseId: true, courseCode: true, courseName: true } },
+} as const
 
-const checkDuplicate = async ( data: { studentNumber: string; email: string },
-  excludeId?: number ) => {
-  const existing = await prisma.student.findFirst({
-    where: {
-      OR: [
-        { studentNumber: data.studentNumber },
-        { email: data.email },
-      ],
-      ...(excludeId ? { NOT: { studentId: excludeId } } : {}),
-    },
-    select: { studentNumber: true, email: true },
-  })
-
-  if (!existing) return
-
-  if (existing.studentNumber === data.studentNumber)
-    throw new AppError('Student with this student number already exists', 409, 'DUPLICATE_STUDENT_409', [{ field: 'studentNumber' }])
-
-  if (existing.email === data.email)
-    throw new AppError('Student with this email already exists', 409, 'DUPLICATE_STUDENT_409', [{ field: 'email' }])
-}
-
-const findCourseByPrefix = async (studentNumber: string) => {
-  const prefix = extractStudentNumberPrefix(studentNumber)
-  if (!prefix) {
-    throw new AppError('Invalid student number prefix', 400, 'INVALID_STUDENT_NUMBER_400')
+export const getAll = async (page: number, limit: number, filters: {
+  search?: string
+  gender?: string
+  courseCode?: string
+  sortBy?: string
+  order?: 'asc' | 'desc'
+}) => {
+  const where: Record<string, unknown> = { user: { deletedAt: null } }
+  if (filters.search) {
+    where.OR = [
+      { studentNumber: { contains: filters.search } },
+      { user: { name: { contains: filters.search } } },
+      { user: { email: { contains: filters.search } } },
+    ]
+  }
+  if (filters.gender) {
+    where.user = { ...where.user as object, profile: { gender: filters.gender } }
+  }
+  if (filters.courseCode) {
+    where.course = { courseCode: filters.courseCode }
   }
 
-  const course = await prisma.course.findUnique({
-    where: { courseCode: prefix },
-    select: { courseId: true },
-  })
-  if (!course) {
-    throw new AppError('Course does not exist for this prefix', 404, 'COURSE_NOT_FOUND_404')
-  }
+  const orderBy = filters.sortBy === 'name'
+    ? { user: { name: filters.order ?? 'desc' } }
+    : { [filters.sortBy ?? 'createdAt']: filters.order ?? 'desc' }
 
-  return course.courseId
-}
-
-export const getAll = async (page: number, limit: number) => {
   const skip = (page - 1) * limit
-  const [data, total] = await Promise.all([
-    prisma.student.findMany({ include: studentInclude, skip, take: limit }),
-    prisma.student.count(),
+  const [items, total] = await Promise.all([
+    prisma.student.findMany({
+      where,
+      include: {
+        ...studentInclude,
+        documents: { where: { deletedAt: null, category: 'PROFILE_PICTURE' }, orderBy: { createdAt: 'desc' }, take: 1 },
+      },
+      orderBy,
+      skip,
+      take: limit,
+    }),
+    prisma.student.count({ where }),
   ])
-  return { data, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } }
+  return { items, total }
 }
 
-export const getById = async (studentId: number) => {
+export const getById = async (studentId: string) => {
   const student = await prisma.student.findUnique({
     where: { studentId },
-    include: studentInclude,
+    include: { ...studentInclude, documents: { where: { deletedAt: null }, orderBy: { createdAt: 'desc' } } },
   })
-
-  if (!student) {
-    throw new AppError('Student does not exist', 404, 'STUDENT_NOT_FOUND_404')
-  }
-
+  if (!student) throw new AppError('Student not found', 404, 'STUDENT_NOT_FOUND_404')
   return student
 }
 
 export const create = async (data: {
   studentNumber: string
-  mykadNumber: string
+  name: string
   email: string
-  studentName: string
-  address?: string | null
-  gender?: 'Male' | 'Female' | null }) => {
+  mykadNumber?: string
+  courseCode: string
+}) => {
+  const course = await prisma.course.findUnique({ where: { courseCode: data.courseCode } })
+  if (!course) throw new AppError('Course not found', 404, 'COURSE_NOT_FOUND_404')
 
-  const courseId = await findCourseByPrefix(data.studentNumber)
-  await checkDuplicate(data)
+  const defaultPassword = `Monash@${data.studentNumber}`
+  const passwordHash = await bcrypt.hash(defaultPassword, 12)
 
   try {
-    return await prisma.student.create({
-      data: {
-        ...data,
-        address: data.address ?? null,
-        gender: data.gender ?? null,
-        courseId
-      },
-      include: studentInclude,
+    return await prisma.$transaction(async (tx) => {
+      const user = await tx.user.create({
+        data: {
+          email: data.email,
+          passwordHash,
+          name: data.name,
+          type: 'STUDENT',
+          isEmailVerified: true,
+          emailVerifiedAt: new Date(),
+        },
+      })
+      const student = await tx.student.create({
+        data: {
+          studentNumber: data.studentNumber,
+          mykadNumber: data.mykadNumber ?? null,
+          courseId: course.courseId,
+          userId: user.userId,
+        },
+        include: studentInclude,
+      })
+      return student
     })
   } catch (err) {
     return handlePrismaError(err, 'Student')
   }
 }
 
-export const update = async ( studentId: number,
-  data: {
-    studentNumber: string
-    mykadNumber: string
-    email: string
-    studentName: string
-    address?: string | null
-    gender?: 'Male' | 'Female' | null }) => {
+export const update = async (studentId: string, data: {
+  name?: string
+  courseCode?: string
+  mykadNumber?: string | null
+}) => {
+  const student = await getById(studentId)
 
-  const courseId = await findCourseByPrefix(data.studentNumber)
-  await checkDuplicate(data, studentId)
+  const updateData: Record<string, unknown> = {}
+  if (data.mykadNumber !== undefined) updateData.mykadNumber = data.mykadNumber
+  if (data.courseCode) {
+    const course = await prisma.course.findUnique({ where: { courseCode: data.courseCode } })
+    if (!course) throw new AppError('Course not found', 404, 'COURSE_NOT_FOUND_404')
+    updateData.courseId = course.courseId
+  }
 
   try {
+    if (data.name) {
+      await prisma.user.update({ where: { userId: student.user.userId }, data: { name: data.name } })
+    }
     return await prisma.student.update({
       where: { studentId },
-      data: {
-        ...data,
-        address: data.address ?? null,
-        gender: data.gender ?? null,
-        courseId
-      },
+      data: updateData,
       include: studentInclude,
     })
   } catch (err) {
@@ -120,9 +130,10 @@ export const update = async ( studentId: number,
   }
 }
 
-export const remove = async (studentId: number) => {
+export const remove = async (studentId: string) => {
+  const student = await getById(studentId)
   try {
-    return await prisma.student.delete({ where: { studentId } })
+    await prisma.user.update({ where: { userId: student.user.userId }, data: { deletedAt: new Date() } })
   } catch (err) {
     return handlePrismaError(err, 'Student')
   }

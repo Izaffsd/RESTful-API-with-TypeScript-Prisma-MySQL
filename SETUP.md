@@ -25,7 +25,7 @@ cp .env.example .env
 Then edit `.env` and set your MySQL URL:
 
 ```env
-PORT=5173
+PORT=4000
 NODE_ENV=development
 DATABASE_URL="mysql://USER:PASSWORD@localhost:3306/monash"
 ```

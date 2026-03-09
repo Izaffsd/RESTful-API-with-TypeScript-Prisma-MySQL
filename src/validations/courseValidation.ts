@@ -1,25 +1,18 @@
-import { z } from 'zod';
+import { z } from 'zod'
 
-const idParam = z.coerce.number('ID must be a number').int().positive();
+export const courseParamsSchema = z.object({
+  courseId: z.string().uuid('Invalid course ID format'),
+})
 
-const courseCode = z
-  .string()
-  .min(1, 'Course code is required')
-  .transform((code) => code.toUpperCase().trim())
-  .refine((code) => /^[A-Z]{2,4}$/.test(code), {
-    message: 'Invalid course code format (2-4 uppercase letters, e.g., SE, LAW)',
-  });
+export const createCourseSchema = z.object({
+  courseCode: z.string().trim().toUpperCase().min(1, 'Course code is required').max(10),
+  courseName: z.string().trim().min(1, 'Course name is required').max(100),
+  description: z.string().trim().optional().nullable(),
+})
 
-const courseName = z
-  .string()
-  .min(1, 'Course name is required')
-  .max(100, 'Course name must not exceed 100 characters')
-  .trim();
-
-export const getCourseByCodeSchema = z.object({ courseCode });
-
-export const createCourseSchema = z.object({ courseCode, courseName });
-
-export const updateCourseSchema = z.object({ courseCode, courseName });
-
-export const deleteCourseSchema = z.object({ courseId: idParam });
+export const updateCourseSchema = z.object({
+  courseCode: z.string().trim().toUpperCase().max(10).optional(),
+  courseName: z.string().trim().min(1).max(100).optional(),
+  description: z.string().trim().optional().nullable(),
+  isActive: z.boolean().optional(),
+})

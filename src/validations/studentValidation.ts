@@ -1,66 +1,30 @@
-import { z } from 'zod';
+import { z } from 'zod'
+import { mykadOptionalSchema, mykadOptionalNullableSchema } from './mykadValidation.js'
 
-export function extractStudentNumberPrefix(studentNumber: string): string | null {
-  const match = studentNumber.match(/^([A-Z]{2,4})/);
-  return match ? match[1] : null;
-}
+export const studentParamsSchema = z.object({
+  studentId: z.string().uuid('Invalid student ID format'),
+})
 
-const idParam = z.coerce.number('ID must be a number').int().positive();
-
-const studentNumber = z
-  .string()
-  .min(1, 'Student number is required')
-  .transform((val) => val.toUpperCase().trim())
-  .refine((val) => /^[A-Z]{2,4}[0-9]{4,5}$/.test(val), {
-    message: 'Invalid student number format (e.g., LAW0504, SE03001)',
-  });
-
-const mykadNumber = z
-  .string()
-  .length(12, 'MyKad number must be exactly 12 digits')
-  .regex(/^\d{12}$/, 'MyKad number must contain only digits')
-  .refine((val) => {
-    const mm = val.substring(2, 4);
-    const dd = val.substring(4, 6);
-    const month = parseInt(mm, 10);
-    const day = parseInt(dd, 10);
-    return month >= 1 && month <= 12 && day >= 1 && day <= 31;
-  }, { message: 'Invalid MyKad number format (YYMMDDxxxxxx)' });
-
-const email = z
-  .string()
-  .trim()
-  .toLowerCase()
-  .refine((val) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val), { message: 'Invalid email format' });
-
-const studentName = z
-  .string()
-  .trim()
-  .min(1, 'Student name is required')
-  .max(100, 'Student name must not exceed 100 characters')
-  .regex(
-    /^[\p{L}]+(?:[ '-][\p{L}]+)*$/u,{
-      message: "Only letters are allowed. You may use single spaces, apostrophes (') or hyphens (-) between words."
-  });
-
-export const getStudentByIdSchema = z.object({ studentId: idParam });
+export const studentQuerySchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(10),
+  search: z.string().trim().optional(),
+  gender: z.enum(['Male', 'Female']).optional(),
+  courseCode: z.string().trim().toUpperCase().optional(),
+  sortBy: z.enum(['createdAt', 'studentNumber', 'name']).optional().default('createdAt'),
+  order: z.enum(['asc', 'desc']).optional().default('desc'),
+})
 
 export const createStudentSchema = z.object({
-  studentName,
-  studentNumber,
-  email,
-  mykadNumber,
-  address: z.string().max(255).trim().optional().nullable(),
-  gender: z.enum(['Male', 'Female']).optional().nullable(),
-});
+  studentNumber: z.string().trim().toUpperCase().min(1, 'Student number is required'),
+  name: z.string().trim().min(1, 'Name is required').max(100),
+  email: z.string().trim().toLowerCase().email('Invalid email format'),
+  mykadNumber: mykadOptionalSchema,
+  courseCode: z.string().trim().toUpperCase().min(1, 'Course code is required'),
+})
 
 export const updateStudentSchema = z.object({
-  studentName,
-  studentNumber,
-  email,
-  mykadNumber,
-  address: z.string().max(255).trim().optional().nullable(),
-  gender: z.enum(['Male', 'Female']).optional().nullable(),
-});
-
-export const deleteStudentSchema = z.object({ studentId: idParam });
+  name: z.string().trim().min(1).max(100).optional(),
+  courseCode: z.string().trim().toUpperCase().optional(),
+  mykadNumber: mykadOptionalNullableSchema,
+})

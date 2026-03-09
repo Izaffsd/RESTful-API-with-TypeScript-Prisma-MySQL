@@ -4,27 +4,53 @@ import { handlePrismaError } from '../utils/prismaErrors.js'
 
 export const getAll = async (page: number, limit: number) => {
   const skip = (page - 1) * limit
-  const [data, total] = await Promise.all([
-    prisma.course.findMany({ orderBy: { courseCode: 'asc' }, skip, take: limit }),
+  const [items, total] = await Promise.all([
+    prisma.course.findMany({
+      orderBy: { courseCode: 'asc' },
+      skip,
+      take: limit,
+      include: { _count: { select: { students: true, lecturers: true } } },
+    }),
     prisma.course.count(),
   ])
-  return { data, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } }
+
+  const data = items.map((c) => ({
+    ...c,
+    totalStudents: c._count.students,
+    totalLecturers: c._count.lecturers,
+    _count: undefined,
+  }))
+
+  return { items: data, total }
 }
 
-export const getByCode = async (courseCode: string) => {
+export const getById = async (courseId: string) => {
   const course = await prisma.course.findUnique({
-    where: { courseCode },
-    include: { students: true },
+    where: { courseId },
+    include: {
+      _count: { select: { students: true, lecturers: true } },
+      lecturers: {
+        include: { user: { select: { userId: true, name: true, email: true } } },
+      },
+    },
   })
+  if (!course) throw new AppError('Course not found', 404, 'COURSE_NOT_FOUND_404')
 
-  if (!course) {
-    throw new AppError('Course does not exist', 404, 'COURSE_NOT_FOUND_404')
+  return {
+    ...course,
+    totalStudents: course._count.students,
+    totalLecturers: course._count.lecturers,
+    _count: undefined,
+    lecturers: course.lecturers.map((l) => ({
+      lecturerId: l.lecturerId,
+      staffNumber: l.staffNumber,
+      name: l.user.name,
+      email: l.user.email,
+    })),
   }
-
-  return course
 }
 
-export const create = async (data: { courseCode: string; courseName: string }) => {
+export const create = async (data: { courseCode: string; courseName: string; description?: string | null }) => {
   try {
     return await prisma.course.create({ data })
   } catch (err) {
@@ -32,7 +58,13 @@ export const create = async (data: { courseCode: string; courseName: string }) =
   }
 }
 
-export const update = async (courseId: number, data: { courseCode: string; courseName: string }) => {
+export const update = async (courseId: string, data: {
+  courseCode?: string
+  courseName?: string
+  description?: string | null
+  isActive?: boolean
+}) => {
+  await getById(courseId)
   try {
     return await prisma.course.update({ where: { courseId }, data })
   } catch (err) {
@@ -40,7 +72,8 @@ export const update = async (courseId: number, data: { courseCode: string; cours
   }
 }
 
-export const remove = async (courseId: number) => {
+export const remove = async (courseId: string) => {
+  await getById(courseId)
   try {
     return await prisma.course.delete({ where: { courseId } })
   } catch (err) {
