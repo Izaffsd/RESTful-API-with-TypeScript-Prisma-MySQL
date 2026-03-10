@@ -9,11 +9,11 @@ const password = z
   .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character')
 
 export const registerSchema = z.object({
-  name: z.string().trim().min(1, 'Name is required').max(100),
+  name: z.string().trim().min(1, 'Full name is required').max(100),
   email: z.string().trim().toLowerCase().email('Invalid email format'),
   password,
   confirmPassword: z.string(),
-  studentNumber: z.string().trim().toUpperCase().optional(),
+  studentNumber: z.string().trim().toUpperCase().min(1, 'Student number is required'),
 }).refine((d) => d.password === d.confirmPassword, {
   message: 'Passwords do not match',
   path: ['confirmPassword'],
@@ -46,7 +46,7 @@ export const resetPasswordSchema = z.object({
 })
 
 export const updateMeSchema = z.object({
-  name: z.string().trim().min(1, 'Name is required').max(100),
+  name: z.string().trim().min(1, 'Full name is required').max(100),
 })
 
 export const changePasswordSchema = z.object({

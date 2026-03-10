@@ -329,6 +329,8 @@ Content-Type: application/json
 }
 ```
 
+- **Phone number rules:** The backend accepts common Malaysian formats (e.g. `018-9192276`, `+60 18 919 2276`) and **normalizes** them to `+60XXXXXXXXX` (E.164-style). Store and search using this normalized value.
+
 ```http
 PATCH /api/auth/me/password
 Authorization: Bearer <accessToken>
@@ -468,8 +470,8 @@ Example (FormData):
 
 ```js
 const formData = new FormData()
+formData.append('category', 'DOCUMENT') // IMPORTANT: append category BEFORE file
 formData.append('file', fileInput.files[0])
-formData.append('category', 'DOCUMENT')
 
 fetch(`${API_URL}/api/me/documents`, {
   method: 'POST',
@@ -481,7 +483,8 @@ fetch(`${API_URL}/api/me/documents`, {
 })
 ```
 
-- **Allowed types:** Images (JPEG, PNG, WebP) and PDF. Max size 10 MB (documents) or 5 MB (profile picture, if used).
+- **Allowed types:** Images (JPEG, PNG, WebP) and PDF. Max size **10 MB** for all categories.
+- **Storage paths (backend detail):** `PROFILE_PICTURE` files go under `uploads/profiles/YYYY/MM/DD`, other categories under `uploads/documents/YYYY/MM/DD`.
 - **Uploaded file URL:** The API returns the created document with `fileUrl`; you can use it to display or link the file. Static files are served under `/uploads/...` (same origin as API).
 
 ---
@@ -502,7 +505,7 @@ Example:
 GET /api/students?page=2&limit=20&search=ali&sortBy=name&order=asc
 ```
 
-Response includes `meta` and `links` (see [Response format](#3-response-format)). Use `meta.hasNext` / `meta.hasPrev` and `links.next` / `links.prev` for “Next/Previous” buttons or infinite scroll.
+Response includes `meta` and `links` (see [Response format](#3-response-format)). Use `meta.hasNext` / `meta.hasPrev` and `links.next` / `links.prev` for “Next/Previous” buttons or infinite scroll. The `links.*` URLs preserve any filters you passed (e.g. `search`, `gender`, `courseCode`).
 
 ---
 

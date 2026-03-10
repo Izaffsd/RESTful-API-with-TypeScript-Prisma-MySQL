@@ -28,7 +28,8 @@ const actionButton = (url: string, label: string) =>
   `<div style="text-align:center;margin:24px 0"><a href="${url}" style="display:inline-block;padding:12px 32px;background:${BRAND_COLOR};color:#fff;text-decoration:none;border-radius:6px;font-weight:bold">${label}</a></div>`
 
 export const sendVerificationEmail = async (email: string, name: string, token: string) => {
-  const url = `${env.APP_URL}/api/auth/verify-email?token=${token}`
+  // Link to frontend so SPA can call API and show success/error UI (same flow as reset-password)
+  const url = `${env.FRONTEND_URL}/verify-email?token=${encodeURIComponent(token)}`
 
   if (env.NODE_ENV === 'development') {
     logger.info(`[DEV] Verification URL for ${email}: ${url}`)
@@ -63,7 +64,7 @@ export const sendVerificationEmail = async (email: string, name: string, token: 
 
 export const sendPasswordResetEmail = async (email: string, name: string, token: string) => {
   // Link to frontend so SPA can show reset form and POST token to API
-  const url = `${env.APP_URL}?token=${encodeURIComponent(token)}`
+  const url = `${env.FRONTEND_URL}/reset-password?token=${encodeURIComponent(token)}`
 
   if (env.NODE_ENV === 'development') {
     logger.info(`[DEV] Password reset URL for ${email}: ${url}`)
@@ -90,7 +91,7 @@ export const sendWelcomeEmail = async (email: string, name: string) => {
     html: baseTemplate('Welcome!', `
       <p style="color:#555;line-height:1.6">Hi ${name},</p>
       <p style="color:#555;line-height:1.6">Your email has been verified and your account is now active. You can now log in and start using the system.</p>
-      ${actionButton(`${env.APP_URL}`, 'Go to Dashboard')}
+      ${actionButton(`${env.FRONTEND_URL}`, 'Go to Dashboard')}
     `),
   })
 }

@@ -33,6 +33,15 @@ export const updateMyStudent = async (req: Request, res: Response): Promise<void
   if (!student) throw new AppError('Student record not found', 404, 'STUDENT_NOT_FOUND_404')
 
   const data = req.validated.body as { mykadNumber?: string | null }
+  if (data.mykadNumber) {
+    const existing = await prisma.student.findFirst({
+      where: { mykadNumber: data.mykadNumber, studentId: { not: student.studentId } },
+    })
+    if (existing) {
+      throw new AppError('MyKad number already registered to another student', 409, 'DUPLICATE_MYKAD_409')
+    }
+  }
+
   const updated = await prisma.student.update({
     where: { studentId: student.studentId },
     data: { mykadNumber: data.mykadNumber },
@@ -64,6 +73,15 @@ export const updateMyLecturer = async (req: Request, res: Response): Promise<voi
   if (!lecturer) throw new AppError('Lecturer record not found', 404, 'LECTURER_NOT_FOUND_404')
 
   const data = req.validated.body as { mykadNumber?: string | null }
+  if (data.mykadNumber) {
+    const existing = await prisma.lecturer.findFirst({
+      where: { mykadNumber: data.mykadNumber, lecturerId: { not: lecturer.lecturerId } },
+    })
+    if (existing) {
+      throw new AppError('MyKad number already registered to another lecturer', 409, 'DUPLICATE_MYKAD_409')
+    }
+  }
+
   const updated = await prisma.lecturer.update({
     where: { lecturerId: lecturer.lecturerId },
     data: { mykadNumber: data.mykadNumber },

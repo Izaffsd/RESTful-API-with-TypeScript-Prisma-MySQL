@@ -46,6 +46,7 @@ function formatUserResponse(user: Record<string, unknown>) {
       gender: profile.gender,
       race: profile.race,
       dateOfBirth: profile.dateOfBirth,
+      state: profile.state,
       address: {
         streetOne: profile.streetOne,
         streetTwo: profile.streetTwo,
@@ -82,6 +83,15 @@ export const register = async (data: {
   const existing = await prisma.user.findUnique({ where: { email: data.email } })
   if (existing) {
     throw new AppError('Email already registered', 409, 'DUPLICATE_EMAIL_409')
+  }
+
+  if (data.studentNumber) {
+    const existingStudent = await prisma.student.findUnique({
+      where: { studentNumber: data.studentNumber },
+    })
+    if (existingStudent) {
+      throw new AppError('Student number already registered', 409, 'DUPLICATE_STUDENT_NUMBER_409')
+    }
   }
 
   const passwordHash = await bcrypt.hash(data.password, SALT_ROUNDS)

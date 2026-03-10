@@ -1,19 +1,20 @@
 import { z } from 'zod'
+import { entityIdSchema } from './idValidation.js'
 
 export const documentIdParamsSchema = z.object({
-  documentId: z.string().uuid('Invalid document ID format'),
+  documentId: entityIdSchema('Invalid document ID format'),
 })
 
 export const studentDocParamsSchema = z.object({
-  studentId: z.string().uuid('Invalid student ID format'),
+  studentId: entityIdSchema('Invalid student ID format'),
 })
 
 export const lecturerDocParamsSchema = z.object({
-  lecturerId: z.string().uuid('Invalid lecturer ID format'),
+  lecturerId: entityIdSchema('Invalid lecturer ID format'),
 })
 
 export const headLecturerDocParamsSchema = z.object({
-  headLecturerId: z.string().uuid('Invalid head lecturer ID format'),
+  headLecturerId: entityIdSchema('Invalid head lecturer ID format'),
 })
 
 export const uploadCategorySchema = z.object({
