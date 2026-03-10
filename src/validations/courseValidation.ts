@@ -1,7 +1,8 @@
 import { z } from 'zod'
+import { entityIdSchema } from './idValidation.js'
 
 export const courseParamsSchema = z.object({
-  courseId: z.string().uuid('Invalid course ID format'),
+  courseId: entityIdSchema('Invalid course ID format'),
 })
 
 export const createCourseSchema = z.object({

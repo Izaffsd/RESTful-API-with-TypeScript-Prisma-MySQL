@@ -5,6 +5,7 @@ const envSchema = z.object({
   PORT: z.coerce.number({ message: 'PORT is required' }),
   NODE_ENV: z.enum(['development', 'production', 'test'], { message: 'NODE_ENV is required' }),
   APP_URL: z.string().min(1, 'APP_URL is required'),
+  FRONTEND_URL: z.string().min(1).optional().default('http://localhost:3000'),
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
   DB_HOST: z.string().min(1, 'DB_HOST is required'),
   DB_USER: z.string().min(1, 'DB_USER is required'),

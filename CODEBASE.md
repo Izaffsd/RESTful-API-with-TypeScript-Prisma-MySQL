@@ -89,7 +89,7 @@ RESTful-API-with-TypeScript-Prisma-MySQL/
 
 **Prisma models**: User (auth, profile, role links), Profile (phone, gender, race, DOB, address), Student, Lecturer, HeadLecturer (each link User + optional Course/Documents), Course, Document (entityId, entityType, file fields, category, soft delete), TokenBlacklist.
 
-**Zod schemas**: authValidation (register, login, verifyEmail query, resendVerification, forgotPassword, resetPassword, updateMe, changePassword); profileValidation (updateProfile); studentValidation (studentParams, studentQuery, createStudent, updateStudent); courseValidation (courseParams, createCourse, updateCourse); lecturerValidation (lecturerParams, createLecturer, updateLecturer); headLecturerValidation (headLecturerParams, createHeadLecturer, updateHeadLecturer); documentValidation (documentIdParams, studentDocParams, lecturerDocParams, headLecturerDocParams, uploadCategorySchema); paginationSchema (page, limit, search, sortBy, order).
+**Zod schemas**: authValidation (register, login, verifyEmail query, resendVerification, forgotPassword, resetPassword, updateMe, changePassword); profileValidation (updateProfile, including Malaysian phone via `phoneValidation`); studentValidation (studentParams, studentQuery, createStudent, updateStudent); courseValidation (courseParams, createCourse, updateCourse); lecturerValidation (lecturerParams, createLecturer, updateLecturer); headLecturerValidation (headLecturerParams, createHeadLecturer, updateHeadLecturer); documentValidation (documentIdParams, studentDocParams, lecturerDocParams, headLecturerDocParams, uploadCategorySchema); mykadValidation (shared Malaysian MyKad/IC rules: `mykadSchema`, `mykadOptionalSchema`, `mykadOptionalNullableSchema`); phoneValidation (Malaysian phone numbers, `phoneSchema`, `phoneOptionalNullableSchema`, normalising to `+60XXXXXXXXX`); paginationSchema (page, limit, search, sortBy, order).
 
 ---
 
@@ -149,7 +149,7 @@ RESTful-API-with-TypeScript-Prisma-MySQL/
 | GET | /head-lecturers/:headLecturerId/documents | JWT + verified | HEAD_LECTURER | headLecturerDocParamsSchema (params) | List head lecturer documents |
 | DELETE | /documents/:documentId | JWT + verified | HEAD_LECTURER | documentIdParamsSchema (params) | Soft-delete document |
 
-Document uploads use `multipart/form-data` with field `file` and body `category` (IC, TRANSCRIPT, DOCUMENT, OTHER, PROFILE_PICTURE).
+Document uploads use `multipart/form-data` with body field `category` (PROFILE_PICTURE, IC, TRANSCRIPT, DOCUMENT, OTHER) and file field `file`. When using `FormData`, **append `category` before `file`** so Multer can route uploads to the correct subfolder (`uploads/profiles/...` for `PROFILE_PICTURE`, `uploads/documents/...` for others).
 
 ---
 
@@ -836,6 +836,7 @@ export const uploadCategorySchema = z.object({
 
 ```typescript
 import { z } from 'zod'
+import { mykadOptionalSchema, mykadOptionalNullableSchema } from './mykadValidation.js'
 
 export const headLecturerParamsSchema = z.object({
   headLecturerId: z.string().uuid('Invalid head lecturer ID format'),
@@ -846,12 +847,12 @@ export const createHeadLecturerSchema = z.object({
   name: z.string().trim().min(1, 'Name is required').max(100),
   email: z.string().trim().toLowerCase().email('Invalid email format'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
-  mykadNumber: z.string().length(12).regex(/^\d{12}$/).optional(),
+  mykadNumber: mykadOptionalSchema,
 })
 
 export const updateHeadLecturerSchema = z.object({
   name: z.string().trim().min(1).max(100).optional(),
-  mykadNumber: z.string().length(12).regex(/^\d{12}$/).optional().nullable(),
+  mykadNumber: mykadOptionalNullableSchema,
 })
 ```
 
@@ -859,6 +860,7 @@ export const updateHeadLecturerSchema = z.object({
 
 ```typescript
 import { z } from 'zod'
+import { mykadOptionalSchema, mykadOptionalNullableSchema } from './mykadValidation.js'
 
 export const lecturerParamsSchema = z.object({
   lecturerId: z.string().uuid('Invalid lecturer ID format'),
@@ -869,14 +871,14 @@ export const createLecturerSchema = z.object({
   name: z.string().trim().min(1, 'Name is required').max(100),
   email: z.string().trim().toLowerCase().email('Invalid email format'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
-  mykadNumber: z.string().length(12).regex(/^\d{12}$/).optional(),
+  mykadNumber: mykadOptionalSchema,
   courseCode: z.string().trim().toUpperCase().min(1, 'Course code is required'),
 })
 
 export const updateLecturerSchema = z.object({
   name: z.string().trim().min(1).max(100).optional(),
   courseCode: z.string().trim().toUpperCase().optional(),
-  mykadNumber: z.string().length(12).regex(/^\d{12}$/).optional().nullable(),
+  mykadNumber: mykadOptionalNullableSchema,
 })
 ```
 
@@ -922,6 +924,7 @@ export const updateProfileSchema = z.object({
 
 ```typescript
 import { z } from 'zod'
+import { mykadOptionalSchema, mykadOptionalNullableSchema } from './mykadValidation.js'
 
 export const studentParamsSchema = z.object({
   studentId: z.string().uuid('Invalid student ID format'),
@@ -941,14 +944,14 @@ export const createStudentSchema = z.object({
   studentNumber: z.string().trim().toUpperCase().min(1, 'Student number is required'),
   name: z.string().trim().min(1, 'Name is required').max(100),
   email: z.string().trim().toLowerCase().email('Invalid email format'),
-  mykadNumber: z.string().length(12, 'MyKad must be 12 digits').regex(/^\d{12}$/).optional(),
+  mykadNumber: mykadOptionalSchema,
   courseCode: z.string().trim().toUpperCase().min(1, 'Course code is required'),
 })
 
 export const updateStudentSchema = z.object({
   name: z.string().trim().min(1).max(100).optional(),
   courseCode: z.string().trim().toUpperCase().optional(),
-  mykadNumber: z.string().length(12).regex(/^\d{12}$/).optional().nullable(),
+  mykadNumber: mykadOptionalNullableSchema,
 })
 ```
 
@@ -2604,14 +2607,12 @@ import { validateZod } from '../middleware/validateZod.middleware.js'
 import { authenticate, authorize, requireVerifiedEmail } from '../middleware/auth.middleware.js'
 import { paginationSchema } from '../validations/paginationSchema.js'
 import { uploadDocument } from '../config/multer.js'
+import { uploadCategorySchema } from '../validations/documentValidation.js'
 import { z } from 'zod'
+import { mykadSchema } from '../validations/mykadValidation.js'
 
 const mykadUpdateSchema = z.object({
-  mykadNumber: z.string().length(12).regex(/^\d{12}$/).optional().nullable(),
-})
-
-const uploadCategorySchema = z.object({
-  category: z.enum(['PROFILE_PICTURE', 'IC', 'TRANSCRIPT', 'DOCUMENT', 'OTHER']),
+  mykadNumber: mykadSchema,
 })
 
 const router = Router()

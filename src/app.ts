@@ -1,6 +1,7 @@
 import express from 'express'
 import path from 'node:path'
 import cors from 'cors'
+import helmet from 'helmet'
 import morgan from 'morgan'
 import cookieParser from 'cookie-parser'
 import routes from './routes/index.js'
@@ -12,10 +13,15 @@ import { env } from './config/env.js'
 
 const app = express()
 
+const corsOrigins = env.FRONTEND_URL
+  ? env.FRONTEND_URL.split(',').map((o) => o.trim()).filter(Boolean)
+  : ['http://localhost:3000', 'http://localhost:5173']
+
 app.use(requestId)
+app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }))
 app.use(morgan(env.NODE_ENV === 'production' ? 'combined' : 'dev'))
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:5173'],
+  origin: corsOrigins.length > 0 ? corsOrigins : true,
   credentials: true,
 }))
 app.use(express.json())
