@@ -1,0 +1,2317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monash College Management System</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%231d6fe8'/><text x='16' y='22' font-size='18' font-weight='bold' fill='white' text-anchor='middle' font-family='system-ui'>M</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Syne:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ─── RESET & TOKENS ─────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f6f8;
+  --surface:#ffffff;
+  --surface2:#f0f2f5;
+  --surface3:#e8eaed;
+  --border:#e0e3e8;
+  --border2:#d0d4db;
+  --accent:#1d6fe8;
+  --accent2:#3b8bff;
+  --primary:#1d6fe8;
+  --primary-hover:#1565c0;
+  --accent-glow:rgba(29,111,232,.12);
+  --gold:#c9a84c;
+  --gold2:#b8943a;
+  --danger:#e84040;
+  --success:#22c97a;
+  --warn:#f0a500;
+  --text:#1a1d24;
+  --text2:#4a4e5a;
+  --text3:#6b7280;
+  --font-head:'DM Serif Display',serif;
+  --font-ui:'Syne',sans-serif;
+  --font-mono:'DM Mono',monospace;
+  --radius:10px;
+  --radius-lg:16px;
+  --shadow:0 2px 12px rgba(0,0,0,.08);
+  --shadow-lg:0 4px 24px rgba(0,0,0,.12);
+  --transition:.18s cubic-bezier(.4,0,.2,1);
+}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--font-ui);
+  font-size:14px;
+  line-height:1.6;
+  min-height:100vh;
+  overflow-x:hidden;
+}
+button{cursor:pointer;font-family:var(--font-ui)}
+input,select,textarea{font-family:var(--font-ui)}
+a{color:inherit;text-decoration:none}
+
+/* ─── SCROLLBAR ──────────────────────────────────────────── */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--surface)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:99px}
+
+/* ─── LAYOUT ─────────────────────────────────────────────── */
+#app{display:flex;height:100vh;overflow:hidden}
+
+/* ─── SIDEBAR ────────────────────────────────────────────── */
+.sidebar{
+  width:240px;min-width:240px;
+  background:var(--surface);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+  transition:width var(--transition);
+  position:relative;z-index:10;
+}
+.sidebar-logo{
+  padding:24px 20px 20px;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:12px;
+}
+.logo-mark{
+  width:36px;height:36px;border-radius:8px;
+  background:linear-gradient(135deg,var(--accent),var(--gold));
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-head);font-size:18px;color:#fff;
+  flex-shrink:0;
+}
+.logo-text{display:flex;flex-direction:column;gap:0}
+.logo-text strong{font-family:var(--font-head);font-size:16px;letter-spacing:-.3px;line-height:1.1}
+.logo-text span{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;font-weight:600}
+
+.nav-section{
+  padding:16px 12px 8px;
+  flex:1;overflow-y:auto;
+}
+.nav-label{
+  font-size:10px;font-weight:700;letter-spacing:1.5px;
+  color:var(--text3);text-transform:uppercase;
+  padding:0 8px;margin-bottom:6px;margin-top:12px;
+}
+.nav-label:first-child{margin-top:0}
+.nav-item{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 10px;border-radius:var(--radius);
+  color:var(--text2);font-size:13px;font-weight:500;
+  cursor:pointer;transition:all var(--transition);
+  border:1px solid transparent;
+  margin-bottom:2px;
+  white-space:nowrap;
+}
+.nav-item svg{flex-shrink:0;opacity:.7}
+.nav-item:hover{color:var(--text);background:var(--surface2);border-color:var(--border)}
+.nav-item.active{
+  color:var(--accent2);background:var(--accent-glow);
+  border-color:rgba(29,111,232,.3);
+}
+.nav-item.active svg{opacity:1}
+.nav-badge{
+  margin-left:auto;background:var(--accent);color:#fff;
+  font-size:10px;font-weight:700;
+  padding:1px 6px;border-radius:99px;min-width:18px;text-align:center;
+}
+
+.sidebar-footer{
+  padding:12px;border-top:1px solid var(--border);
+}
+.user-card{
+  display:flex;align-items:center;gap:10px;
+  padding:10px;border-radius:var(--radius);
+  background:var(--surface2);border:1px solid var(--border);
+  cursor:pointer;transition:all var(--transition);
+}
+.user-card:hover{border-color:var(--border2)}
+.user-avatar{
+  width:32px;height:32px;border-radius:8px;
+  background:linear-gradient(135deg,var(--accent),#5b3fd4);
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:700;color:#fff;flex-shrink:0;
+}
+.user-info{flex:1;overflow:hidden}
+.user-info strong{display:block;font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.user-info span{font-size:10px;color:var(--text2);font-family:var(--font-mono)}
+
+/* ─── MAIN ───────────────────────────────────────────────── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+
+/* ─── TOPBAR ─────────────────────────────────────────────── */
+.topbar{
+  height:57px;min-height:57px;
+  background:var(--surface);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 24px;gap:16px;
+}
+.topbar-title{
+  font-family:var(--font-head);font-size:20px;
+  flex:1;
+}
+.topbar-title span{color:var(--text2);font-family:var(--font-ui);font-size:13px;font-style:normal;margin-left:8px}
+.topbar-actions{display:flex;align-items:center;gap:8px}
+
+/* ─── BUTTONS ────────────────────────────────────────────── */
+.btn{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:8px 16px;border-radius:var(--radius);
+  font-size:13px;font-weight:600;
+  border:1px solid transparent;
+  transition:all var(--transition);line-height:1;
+}
+.btn svg{flex-shrink:0}
+.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn-primary:hover{background:var(--accent2);border-color:var(--accent2);box-shadow:0 0 20px var(--accent-glow)}
+.btn-ghost{background:transparent;color:var(--text2);border-color:var(--border)}
+.btn-ghost:hover{color:var(--text);background:var(--surface2);border-color:var(--border2)}
+.btn-danger{background:rgba(232,64,64,.12);color:var(--danger);border-color:rgba(232,64,64,.3)}
+.btn-danger:hover{background:rgba(232,64,64,.2)}
+.btn-success{background:rgba(34,201,122,.12);color:var(--success);border-color:rgba(34,201,122,.3)}
+.btn-sm{padding:5px 10px;font-size:12px}
+.btn-icon{padding:7px;border-radius:8px}
+
+/* ─── CONTENT AREA ───────────────────────────────────────── */
+.content{flex:1;overflow-y:auto;padding:24px}
+.page{display:none}
+.page.active{display:block}
+
+/* ─── STAT CARDS ─────────────────────────────────────────── */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;margin-bottom:24px}
+.stat-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius-lg);padding:20px;
+  position:relative;overflow:hidden;
+  transition:all var(--transition);
+}
+.stat-card:hover{border-color:var(--border2);transform:translateY(-1px);box-shadow:var(--shadow)}
+.stat-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+}
+.stat-card.blue::before{background:linear-gradient(90deg,var(--accent),var(--accent2))}
+.stat-card.gold::before{background:linear-gradient(90deg,var(--gold),var(--gold2))}
+.stat-card.green::before{background:linear-gradient(90deg,#22c97a,#4bffa5)}
+.stat-card.purple::before{background:linear-gradient(90deg,#7b5ea7,#b07ef0)}
+.stat-icon{
+  width:40px;height:40px;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  margin-bottom:14px;font-size:18px;
+}
+.stat-card.blue .stat-icon{background:var(--accent-glow);color:var(--accent2)}
+.stat-card.gold .stat-icon{background:rgba(201,168,76,.12);color:var(--gold2)}
+.stat-card.green .stat-icon{background:rgba(34,201,122,.1);color:var(--success)}
+.stat-card.purple .stat-icon{background:rgba(123,94,167,.15);color:#b07ef0}
+.stat-value{font-family:var(--font-head);font-size:36px;line-height:1;margin-bottom:4px}
+.stat-label{font-size:12px;color:var(--text2);font-weight:500;text-transform:uppercase;letter-spacing:.5px}
+.stat-sub{font-size:11px;color:var(--text3);margin-top:8px;font-family:var(--font-mono)}
+
+/* ─── PANEL / CARD ───────────────────────────────────────── */
+.panel{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius-lg);overflow:hidden;margin-bottom:20px;
+}
+.panel-header{
+  display:flex;align-items:center;gap:12px;
+  padding:16px 20px;border-bottom:1px solid var(--border);
+}
+.panel-header h3{font-size:14px;font-weight:600;flex:1}
+.panel-header .panel-sub{font-size:12px;color:var(--text2)}
+.panel-body{padding:20px}
+
+/* ─── TABLE ──────────────────────────────────────────────── */
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+thead tr{border-bottom:1px solid var(--border)}
+th{
+  padding:10px 14px;text-align:left;
+  font-size:11px;font-weight:700;letter-spacing:.8px;
+  text-transform:uppercase;color:var(--text3);white-space:nowrap;
+}
+td{
+  padding:12px 14px;font-size:13px;
+  border-bottom:1px solid var(--border);
+  vertical-align:middle;
+}
+tbody tr:last-child td{border-bottom:none}
+tbody tr{transition:background var(--transition)}
+tbody tr:hover{background:var(--surface2)}
+.td-mono{font-family:var(--font-mono);font-size:12px;color:var(--text2)}
+
+/* ─── BADGES ─────────────────────────────────────────────── */
+.badge{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:3px 8px;border-radius:99px;
+  font-size:11px;font-weight:600;
+}
+.badge-blue{background:var(--accent-glow);color:var(--accent2);border:1px solid rgba(29,111,232,.25)}
+.badge-green{background:rgba(34,201,122,.1);color:var(--success);border:1px solid rgba(34,201,122,.2)}
+.badge-gold{background:rgba(201,168,76,.1);color:var(--gold2);border:1px solid rgba(201,168,76,.2)}
+.badge-red{background:rgba(232,64,64,.1);color:var(--danger);border:1px solid rgba(232,64,64,.2)}
+.badge-gray{background:var(--surface2);color:var(--text2);border:1px solid var(--border)}
+.badge-dot{width:5px;height:5px;border-radius:50%;background:currentColor}
+
+/* ─── AVATAR ─────────────────────────────────────────────── */
+.avatar{
+  width:32px;height:32px;border-radius:8px;
+  background:var(--surface3);
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:700;color:var(--text2);
+  flex-shrink:0;border:1px solid var(--border);
+}
+
+/* ─── SEARCH / FILTER BAR ────────────────────────────────── */
+.toolbar{
+  display:flex;align-items:center;gap:10px;
+  margin-bottom:16px;flex-wrap:wrap;
+}
+.search-wrap{position:relative;flex:1;min-width:200px;max-width:340px}
+.search-wrap svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text3)}
+.search-input{
+  width:100%;background:var(--surface2);border:1px solid var(--border);
+  color:var(--text);padding:8px 10px 8px 34px;border-radius:var(--radius);
+  font-size:13px;transition:all var(--transition);outline:none;
+}
+.search-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
+.search-input::placeholder{color:var(--text3)}
+.filter-select{
+  background:var(--surface2);border:1px solid var(--border);
+  color:var(--text);padding:8px 12px;border-radius:var(--radius);
+  font-size:13px;outline:none;cursor:pointer;
+  transition:all var(--transition);
+}
+.filter-select:focus{border-color:var(--accent)}
+
+/* ─── PAGINATION ─────────────────────────────────────────── */
+.pagination{
+  display:flex;align-items:center;gap:6px;
+  padding:16px 20px;border-top:1px solid var(--border);
+  justify-content:space-between;
+}
+.pagination-info{font-size:12px;color:var(--text2);font-family:var(--font-mono)}
+.pagination-btns{display:flex;gap:4px}
+.page-btn{
+  width:30px;height:30px;border-radius:6px;
+  background:var(--surface2);border:1px solid var(--border);
+  color:var(--text2);font-size:12px;font-weight:600;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:all var(--transition);
+}
+.page-btn:hover{border-color:var(--border2);color:var(--text)}
+.page-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.page-btn:disabled{opacity:.3;cursor:not-allowed}
+
+/* ─── MODAL ──────────────────────────────────────────────── */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.75);
+  display:flex;align-items:center;justify-content:center;
+  z-index:1000;opacity:0;pointer-events:none;
+  transition:opacity var(--transition);
+  backdrop-filter:blur(4px);
+}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal{
+  background:var(--surface);border:1px solid var(--border2);
+  border-radius:var(--radius-lg);width:90%;max-width:540px;max-height:90vh;
+  overflow-y:auto;box-shadow:var(--shadow-lg);
+  transform:translateY(20px);transition:transform var(--transition);
+}
+.modal-overlay.open .modal{transform:translateY(0)}
+.modal-header{
+  display:flex;align-items:center;gap:12px;
+  padding:20px 24px;border-bottom:1px solid var(--border);
+  position:sticky;top:0;background:var(--surface);z-index:1;
+}
+.modal-header h3{flex:1;font-size:16px;font-weight:600;font-family:var(--font-head)}
+.modal-body{padding:24px}
+.modal-footer{
+  padding:16px 24px;border-top:1px solid var(--border);
+  display:flex;justify-content:flex-end;gap:10px;
+  position:sticky;bottom:0;background:var(--surface);
+}
+
+/* ─── FORM ───────────────────────────────────────────────── */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.form-grid.cols-1{grid-template-columns:1fr}
+.view-detail-content{display:flex;flex-direction:column;gap:12px}
+.view-detail-row{display:flex;align-items:baseline;gap:12px;padding:8px 0;border-bottom:1px solid var(--border)}
+.view-detail-row:last-child{border-bottom:none}
+.view-detail-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);min-width:120px}
+.view-detail-value{font-size:13px;color:var(--text)}
+.form-group{display:flex;flex-direction:column;gap:6px}
+.form-group.full{grid-column:1/-1}
+label{font-size:12px;font-weight:600;color:var(--text2);letter-spacing:.3px}
+.form-input{
+  background:var(--surface2);border:1px solid var(--border2);
+  color:var(--text);padding:9px 12px;border-radius:var(--radius);
+  font-size:13px;outline:none;width:100%;
+  transition:all var(--transition);
+}
+.form-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
+.form-input::placeholder{color:var(--text3)}
+.form-select{
+  appearance:none;
+  background:var(--surface2) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b92a8' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 12px center;
+  border:1px solid var(--border2);color:var(--text);
+  padding:9px 32px 9px 12px;border-radius:var(--radius);
+  font-size:13px;outline:none;width:100%;cursor:pointer;
+  transition:all var(--transition);
+}
+.form-select:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
+.form-error{font-size:11px;color:var(--danger);margin-top:2px}
+.field-errors{background:rgba(232,64,64,.08);border:1px solid rgba(232,64,64,.2);border-radius:var(--radius);padding:12px 14px;margin-bottom:16px}
+.field-errors p{font-size:12px;color:var(--danger);line-height:1.8}
+
+/* ─── LOGIN PAGE ─────────────────────────────────────────── */
+#login-page{
+  display:flex;align-items:center;justify-content:center;
+  min-height:100vh;
+  background:var(--bg);
+  position:fixed;inset:0;z-index:500;
+  transition:opacity .4s ease;
+}
+#login-page.hidden{opacity:0;pointer-events:none}
+.login-card{
+  width:100%;max-width:400px;padding:40px;
+  background:var(--surface);border:1px solid var(--border2);
+  border-radius:20px;box-shadow:var(--shadow-lg);
+  position:relative;overflow:hidden;
+}
+.login-card::before{
+  content:'';position:absolute;top:-80px;right:-80px;
+  width:240px;height:240px;border-radius:50%;
+  background:radial-gradient(circle,var(--accent-glow) 0%,transparent 70%);
+  pointer-events:none;
+}
+.login-logo{text-align:center;margin-bottom:32px}
+.login-logo-mark{
+  width:56px;height:56px;border-radius:14px;
+  background:linear-gradient(135deg,var(--accent),var(--gold));
+  display:inline-flex;align-items:center;justify-content:center;
+  font-family:var(--font-head);font-size:28px;color:#fff;
+  margin-bottom:14px;
+}
+.login-logo h1{font-family:var(--font-head);font-size:24px;margin-bottom:4px}
+.login-logo p{font-size:12px;color:var(--text2)}
+.login-form{display:flex;flex-direction:column;gap:14px}
+.login-form form{display:flex;flex-direction:column;gap:14px;margin:0}
+.auth-toggle{margin-top:8px;text-align:center;margin:12px 0 0}
+.link-btn{background:none;border:none;color:var(--primary);cursor:pointer;font-size:13px;text-decoration:underline;padding:0}
+.link-btn:hover{color:var(--primary-hover)}
+.muted{color:var(--text3);font-weight:normal}
+.demo-users{margin-top:20px}
+.demo-title{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:8px}
+.demo-chip{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:5px 10px;border-radius:6px;
+  background:var(--surface2);border:1px solid var(--border);
+  font-size:11px;font-family:var(--font-mono);cursor:pointer;
+  margin:3px;transition:all var(--transition);
+}
+.demo-chip:hover{border-color:var(--accent);color:var(--accent2)}
+.demo-chip .demo-role{
+  background:var(--border);padding:1px 5px;border-radius:4px;
+  font-size:10px;font-weight:700;
+}
+
+/* ─── TOAST ──────────────────────────────────────────────── */
+#toasts{
+  position:fixed;top:20px;right:20px;z-index:9999;
+  display:flex;flex-direction:column;gap:8px;pointer-events:none;
+}
+.toast{
+  padding:12px 16px;border-radius:var(--radius);
+  font-size:13px;font-weight:500;
+  border:1px solid var(--border2);
+  display:flex;align-items:center;gap:10px;
+  min-width:280px;max-width:400px;
+  background:var(--surface2);
+  box-shadow:var(--shadow);
+  animation:slideIn .25s ease forwards;
+  pointer-events:all;
+}
+.toast.success{border-color:rgba(34,201,122,.35);color:var(--success)}
+.toast.error{border-color:rgba(232,64,64,.35);color:var(--danger)}
+.toast.info{border-color:rgba(29,111,232,.35);color:var(--accent2)}
+@keyframes slideIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+
+/* ─── LOADING ────────────────────────────────────────────── */
+.loading{
+  display:flex;align-items:center;justify-content:center;
+  padding:48px;color:var(--text3);gap:12px;font-size:13px;
+}
+.spinner{
+  width:20px;height:20px;border-radius:50%;
+  border:2px solid var(--border2);
+  border-top-color:var(--accent);
+  animation:spin .7s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ─── EMPTY STATE ────────────────────────────────────────── */
+.empty{
+  text-align:center;padding:56px 24px;color:var(--text3);
+}
+.empty-icon{font-size:40px;margin-bottom:12px;opacity:.5}
+.empty h4{font-size:15px;font-weight:600;color:var(--text2);margin-bottom:6px}
+.empty p{font-size:13px}
+
+/* ─── COURSE DOTS ────────────────────────────────────────── */
+.course-tag{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;
+  font-family:var(--font-mono);
+}
+.ct-CS{background:rgba(29,111,232,.15);color:#5ba3ff}
+.ct-SE{background:rgba(123,94,167,.15);color:#b07ef0}
+.ct-IT{background:rgba(34,201,122,.12);color:#4bffa5}
+.ct-LAW{background:rgba(201,168,76,.12);color:var(--gold2)}
+.ct-BUS{background:rgba(240,165,0,.12);color:#ffd166}
+.ct-ACC{background:rgba(232,64,64,.12);color:#ff8080}
+
+/* ─── DETAIL VIEW ────────────────────────────────────────── */
+.detail-header{
+  display:flex;align-items:flex-start;gap:20px;
+  padding:24px;background:var(--surface);
+  border:1px solid var(--border);border-radius:var(--radius-lg);margin-bottom:16px;
+}
+.detail-avatar{
+  width:64px;height:64px;border-radius:14px;
+  background:linear-gradient(135deg,var(--accent),#5b3fd4);
+  display:flex;align-items:center;justify-content:center;
+  font-size:24px;font-weight:700;color:#fff;flex-shrink:0;
+}
+.detail-meta{flex:1}
+.detail-meta h2{font-family:var(--font-head);font-size:22px;margin-bottom:4px}
+.detail-meta .detail-sub{display:flex;align-items:center;gap:10px;color:var(--text2);font-size:13px;flex-wrap:wrap}
+.detail-meta .detail-sub .sep{color:var(--border2)}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border)}
+.info-cell{background:var(--surface);padding:14px 18px}
+.info-cell .info-label{font-size:11px;color:var(--text3);font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:3px}
+.info-cell .info-val{font-size:13px;font-weight:500}
+
+/* ─── DOCS LIST ──────────────────────────────────────────── */
+.doc-item{
+  display:flex;align-items:center;gap:12px;
+  padding:12px 14px;border-radius:var(--radius);
+  background:var(--surface2);border:1px solid var(--border);
+  margin-bottom:8px;transition:all var(--transition);
+}
+.doc-item:hover{border-color:var(--border2)}
+.doc-icon{
+  width:36px;height:36px;border-radius:8px;
+  background:var(--surface3);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;flex-shrink:0;
+}
+.doc-info{flex:1;min-width:0}
+.doc-info strong{display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.doc-info span{font-size:11px;color:var(--text2)}
+.upload-zone{
+  border:2px dashed var(--border2);border-radius:var(--radius-lg);
+  padding:32px;text-align:center;cursor:pointer;
+  transition:all var(--transition);color:var(--text3);
+}
+.upload-zone:hover{border-color:var(--accent);color:var(--accent2);background:var(--accent-glow)}
+.upload-zone input{display:none}
+.upload-preview-block{display:block}
+
+/* ─── RESPONSIVE ─────────────────────────────────────────── */
+@media(max-width:768px){
+  .sidebar{position:fixed;inset:0 auto 0 0;z-index:100;transform:translateX(-100%)}
+  .sidebar.open{transform:translateX(0)}
+  .form-grid{grid-template-columns:1fr}
+  .stats-grid{grid-template-columns:1fr 1fr}
+  .info-grid{grid-template-columns:1fr}
+}
+
+/* ─── API BADGE ──────────────────────────────────────────── */
+.api-indicator{
+  display:flex;align-items:center;gap:6px;
+  font-size:11px;color:var(--text3);font-family:var(--font-mono);
+}
+.api-dot{width:6px;height:6px;border-radius:50%;background:var(--success);box-shadow:0 0 6px var(--success);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.api-dot.offline{background:var(--danger);box-shadow:0 0 6px var(--danger);animation:none}
+</style>
+</head>
+<body>
+
+<!-- LOGIN / REGISTER PAGE -->
+<div id="login-page">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-logo-mark">M</div>
+      <h1>Monash CMS</h1>
+      <p>College Management System</p>
+    </div>
+
+    <!-- LOGIN FORM -->
+    <div id="login-form-wrap" class="login-form" style="display:none">
+      <form id="login-form" method="post" action="javascript:void(0)" onsubmit="doLogin();return false">
+        <div id="login-errors" class="field-errors" style="display:none"></div>
+        <div class="form-group">
+          <label for="login-email">Email Address</label>
+          <input id="login-email" class="form-input" type="email" placeholder="you@monash.edu" value="headlecturer@monash.edu" autocomplete="email" name="email">
+        </div>
+        <div class="form-group">
+          <label for="login-password">Password</label>
+          <input id="login-password" class="form-input" type="password" placeholder="••••••••" value="SecurePass1!" autocomplete="current-password" name="password">
+        </div>
+        <button type="submit" class="btn btn-primary" id="login-btn" style="width:100%;justify-content:center;padding:11px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+          Sign In
+        </button>
+      </form>
+      <p class="auth-toggle">
+        <button type="button" class="link-btn" onclick="showForgotPassword()">Forgot password?</button>
+      </p>
+      <p class="auth-toggle">
+        <button type="button" class="link-btn" onclick="showRegister()">Create an account</button>
+      </p>
+    </div>
+
+    <!-- FORGOT PASSWORD FORM -->
+    <div id="forgot-form-wrap" class="login-form" style="display:none">
+      <div id="forgot-errors" class="field-errors" style="display:none"></div>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:12px">Enter your email and we’ll send you a link to reset your password.</p>
+      <form method="post" action="javascript:void(0)" onsubmit="doForgotPassword();return false">
+        <div class="form-group">
+          <label for="forgot-email">Email Address</label>
+          <input id="forgot-email" class="form-input" type="email" placeholder="you@monash.edu" autocomplete="email" name="email">
+        </div>
+        <button type="submit" class="btn btn-primary" id="forgot-btn" style="width:100%;justify-content:center;padding:11px">Send reset link</button>
+      </form>
+      <p class="auth-toggle">
+        <button type="button" class="link-btn" onclick="showLogin()">Back to sign in</button>
+      </p>
+    </div>
+
+    <!-- RESET PASSWORD FORM (shown when URL has ?token=...) -->
+    <div id="reset-form-wrap" class="login-form" style="display:none">
+      <div id="reset-errors" class="field-errors" style="display:none"></div>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:12px">Enter your new password below.</p>
+      <form method="post" action="javascript:void(0)" onsubmit="doResetPassword();return false">
+        <div class="form-group">
+          <label for="reset-password">New password</label>
+          <input id="reset-password" class="form-input" type="password" placeholder="Min 8 chars, upper, lower, number, special" autocomplete="new-password" name="password">
+        </div>
+        <div class="form-group">
+          <label for="reset-confirm">Confirm password</label>
+          <input id="reset-confirm" class="form-input" type="password" placeholder="Same as above" autocomplete="new-password" name="confirmPassword">
+        </div>
+        <button type="submit" class="btn btn-primary" id="reset-btn" style="width:100%;justify-content:center;padding:11px">Reset password</button>
+      </form>
+      <p class="auth-toggle">
+        <button type="button" class="link-btn" onclick="showLogin(); window.history.replaceState({}, '', window.location.pathname)">Back to sign in</button>
+      </p>
+    </div>
+
+    <!-- REGISTER FORM (shown first) -->
+    <div id="register-form-wrap" class="login-form">
+      <form id="register-form" method="post" action="javascript:void(0)" onsubmit="doRegister();return false">
+        <div id="register-errors" class="field-errors" style="display:none"></div>
+        <div class="form-group">
+          <label for="reg-name">Full Name</label>
+          <input id="reg-name" class="form-input" type="text" placeholder="Your name" autocomplete="name" name="name">
+        </div>
+        <div class="form-group">
+          <label for="reg-email">Email Address</label>
+          <input id="reg-email" class="form-input" type="email" placeholder="you@monash.edu" autocomplete="email" name="email">
+        </div>
+        <div class="form-group">
+          <label for="reg-password">Password</label>
+          <input id="reg-password" class="form-input" type="password" placeholder="Min 8 chars, upper, lower, number, special" autocomplete="new-password" name="password">
+        </div>
+        <div class="form-group">
+          <label for="reg-confirm">Confirm Password</label>
+          <input id="reg-confirm" class="form-input" type="password" placeholder="Same as above" autocomplete="new-password" name="confirmPassword">
+        </div>
+        <div class="form-group">
+          <label for="reg-student-number">Student Number <span class="muted">(optional)</span></label>
+          <input id="reg-student-number" class="form-input" type="text" placeholder="e.g. BCS12345" autocomplete="off" name="studentNumber">
+        </div>
+        <button type="submit" class="btn btn-primary" id="register-btn" style="width:100%;justify-content:center;padding:11px">
+          Create account
+        </button>
+      </form>
+      <p class="auth-toggle">
+        <button type="button" class="link-btn" onclick="showLogin()">Already have an account? Sign in</button>
+      </p>
+    </div>
+
+    <div class="demo-users" id="demo-users-wrap" style="display:none">
+      <div class="demo-title">Quick Demo</div>
+      <span class="demo-chip" onclick="fillDemo('headlecturer@monash.edu','SecurePass1!')"><span class="demo-role">HEAD</span>headlecturer@monash.edu</span>
+      <span class="demo-chip" onclick="fillDemo('lecturer@monash.edu','SecurePass1!')"><span class="demo-role">LEC</span>lecturer@monash.edu</span>
+      <span class="demo-chip" onclick="fillDemo('student@monash.edu','SecurePass1!')"><span class="demo-role">STU</span>student@monash.edu</span>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app" style="display:none">
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-mark">M</div>
+      <div class="logo-text">
+        <strong>Monash CMS</strong>
+        <span>Management System</span>
+      </div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Overview</div>
+      <div class="nav-item active" data-page="dashboard" onclick="navigate('dashboard')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        Dashboard
+      </div>
+
+      <div class="nav-label" id="nav-admin-label">Administration</div>
+      <div class="nav-item" id="nav-students" data-page="students" onclick="navigate('students')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Students
+        <span class="nav-badge" id="nb-students">—</span>
+      </div>
+      <div class="nav-item" id="nav-lecturers" data-page="lecturers" onclick="navigate('lecturers')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 1 0-16 0"/><path d="M12 12v9"/><path d="M8 16h8"/></svg>
+        Lecturers
+        <span class="nav-badge" id="nb-lecturers">—</span>
+      </div>
+      <div class="nav-item" id="nav-headlecturers" data-page="headlecturers" onclick="navigate('headlecturers')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 1 0-16 0"/><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        Head Lecturers
+      </div>
+      <div class="nav-item" id="nav-courses" data-page="courses" onclick="navigate('courses')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        Courses
+      </div>
+
+      <div class="nav-label">My Account</div>
+      <div class="nav-item" data-page="profile" onclick="navigate('profile')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        My Profile
+      </div>
+      <div class="nav-item" data-page="documents" onclick="navigate('documents')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        My Documents
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="user-card" onclick="navigate('profile')">
+        <div class="user-avatar" id="sidebar-avatar">?</div>
+        <div class="user-info">
+          <strong id="sidebar-name">Loading...</strong>
+          <span id="sidebar-role">—</span>
+        </div>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text3)"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="doLogout()" style="width:100%;justify-content:center;margin-top:8px">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Sign Out
+      </button>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-title" id="topbar-title">Dashboard</div>
+      <div class="topbar-actions">
+        <div class="api-indicator">
+          <div class="api-dot" id="api-dot"></div>
+          <span id="api-url">API</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- DASHBOARD -->
+      <div class="page active" id="page-dashboard">
+        <div class="stats-grid" id="stats-grid">
+          <div class="stat-card blue">
+            <div class="stat-icon">👨‍🎓</div>
+            <div class="stat-value" id="stat-students">—</div>
+            <div class="stat-label">Students</div>
+            <div class="stat-sub" id="stat-students-sub">Loading...</div>
+          </div>
+          <div class="stat-card gold">
+            <div class="stat-icon">👨‍🏫</div>
+            <div class="stat-value" id="stat-lecturers">—</div>
+            <div class="stat-label">Lecturers</div>
+            <div class="stat-sub" id="stat-lecturers-sub">Loading...</div>
+          </div>
+          <div class="stat-card green">
+            <div class="stat-icon">📚</div>
+            <div class="stat-value" id="stat-courses">—</div>
+            <div class="stat-label">Courses</div>
+            <div class="stat-sub" id="stat-courses-sub">Loading...</div>
+          </div>
+          <div class="stat-card purple">
+            <div class="stat-icon">⭐</div>
+            <div class="stat-value" id="stat-hl">—</div>
+            <div class="stat-label">Head Lecturers</div>
+            <div class="stat-sub" id="stat-hl-sub">Loading...</div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div class="panel">
+            <div class="panel-header">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+              <h3>Students by Course</h3>
+            </div>
+            <div id="courses-breakdown" class="panel-body">
+              <div class="loading"><div class="spinner"></div></div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-header">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              <h3>Recent Registrations</h3>
+            </div>
+            <div id="recent-reg" class="panel-body">
+              <div class="loading"><div class="spinner"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STUDENTS -->
+      <div class="page" id="page-students">
+        <div class="toolbar">
+          <div class="search-wrap">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input class="search-input" id="student-search" placeholder="Search name or student number…" oninput="debounce(()=>loadStudents(1))">
+          </div>
+          <select class="filter-select" id="student-course" onchange="loadStudents(1)">
+            <option value="">All Courses</option>
+          </select>
+          <select class="filter-select" id="student-gender" onchange="loadStudents(1)">
+            <option value="">All Genders</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+          </select>
+          <div style="margin-left:auto;display:flex;gap:8px">
+            <button class="btn btn-primary" id="btn-add-student" onclick="openStudentModal()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add Student
+            </button>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Student</th>
+                  <th>Student No.</th>
+                  <th>Course</th>
+                  <th>Gender</th>
+                  <th>Status</th>
+                  <th>Joined</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="student-tbody"></tbody>
+            </table>
+          </div>
+          <div class="pagination" id="student-pag"></div>
+        </div>
+      </div>
+
+      <!-- LECTURERS -->
+      <div class="page" id="page-lecturers">
+        <div class="toolbar">
+          <div class="search-wrap">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input class="search-input" id="lecturer-search" placeholder="Search name or staff number…" oninput="debounce(()=>loadLecturers(1))">
+          </div>
+          <select class="filter-select" id="lecturer-course" onchange="loadLecturers(1)">
+            <option value="">All Courses</option>
+          </select>
+          <div style="margin-left:auto">
+            <button class="btn btn-primary" id="btn-add-lecturer" onclick="openLecturerModal()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add Lecturer
+            </button>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Lecturer</th>
+                  <th>Staff No.</th>
+                  <th>Course</th>
+                  <th>Status</th>
+                  <th>Joined</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="lecturer-tbody"></tbody>
+            </table>
+          </div>
+          <div class="pagination" id="lecturer-pag"></div>
+        </div>
+      </div>
+
+      <!-- HEAD LECTURERS -->
+      <div class="page" id="page-headlecturers">
+        <div class="toolbar">
+          <div class="search-wrap">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input class="search-input" placeholder="Search head lecturers…" oninput="debounce(()=>loadHeadLecturers(1))">
+          </div>
+          <div style="margin-left:auto">
+            <button class="btn btn-primary" id="btn-add-hl" onclick="openHLModal()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add Head Lecturer
+            </button>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Head Lecturer</th><th>Staff No.</th><th>Status</th><th>Joined</th><th></th></tr>
+              </thead>
+              <tbody id="hl-tbody"></tbody>
+            </table>
+          </div>
+          <div class="pagination" id="hl-pag"></div>
+        </div>
+      </div>
+
+      <!-- COURSES -->
+      <div class="page" id="page-courses">
+        <div class="toolbar">
+          <div class="search-wrap">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input class="search-input" placeholder="Search courses…" oninput="debounce(()=>loadCourses(1))">
+          </div>
+          <div style="margin-left:auto">
+            <button class="btn btn-primary" id="btn-add-course" onclick="openCourseModal()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add Course
+            </button>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Course</th><th>Code</th><th>Students</th><th>Lecturers</th><th>Status</th><th></th></tr>
+              </thead>
+              <tbody id="course-tbody"></tbody>
+            </table>
+          </div>
+          <div class="pagination" id="course-pag"></div>
+        </div>
+      </div>
+
+      <!-- PROFILE -->
+      <div class="page" id="page-profile">
+        <div id="profile-content">
+          <div class="loading"><div class="spinner"></div> Loading profile…</div>
+        </div>
+      </div>
+
+      <!-- DOCUMENTS -->
+      <div class="page" id="page-documents">
+        <div class="panel">
+          <div class="panel-header">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <h3>My Documents</h3>
+            <button class="btn btn-primary btn-sm" onclick="openUploadModal()">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+              Upload
+            </button>
+          </div>
+          <div class="panel-body" id="doc-list">
+            <div class="loading"><div class="spinner"></div></div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<!-- TOASTS -->
+<div id="toasts"></div>
+
+<!-- ─── MODALS ──────────────────────────────────────────────── -->
+
+<!-- VIEW STUDENT MODAL (read-only) -->
+<div class="modal-overlay" id="modal-view-student">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Student details</h3>
+      <button class="btn btn-ghost btn-icon" onclick="closeModal('modal-view-student')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="view-student-errors" class="field-errors" style="display:none"></div>
+      <div id="view-student-content" class="view-detail-content"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-view-student')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- STUDENT MODAL -->
+<div class="modal-overlay" id="modal-student">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="student-modal-title">Add Student</h3>
+      <button class="btn btn-ghost btn-icon" onclick="closeModal('modal-student')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="student-form-errors" class="field-errors" style="display:none"></div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Full Name *</label>
+          <input class="form-input" id="sf-name" placeholder="Ahmad Bin Abdullah">
+        </div>
+        <div class="form-group">
+          <label>Email *</label>
+          <input class="form-input" id="sf-email" type="email" placeholder="ahmad@monash.edu">
+        </div>
+        <div class="form-group">
+          <label>Student Number *</label>
+          <input class="form-input" id="sf-studentno" placeholder="CS0001">
+        </div>
+        <div class="form-group">
+          <label>Course *</label>
+          <select class="form-select" id="sf-course"></select>
+        </div>
+        <div class="form-group">
+          <label>MyKad Number</label>
+          <input class="form-input" id="sf-mykad" placeholder="020101141234">
+        </div>
+        <div class="form-group" id="sf-password-group">
+          <label>Password *</label>
+          <input class="form-input" id="sf-password" type="password" placeholder="SecurePass1!">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-student')">Cancel</button>
+      <button class="btn btn-primary" id="student-save-btn" onclick="saveStudent()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+        Save Student
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- LECTURER MODAL -->
+<div class="modal-overlay" id="modal-lecturer">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="lecturer-modal-title">Add Lecturer</h3>
+      <button class="btn btn-ghost btn-icon" onclick="closeModal('modal-lecturer')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="lecturer-form-errors" class="field-errors" style="display:none"></div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Full Name *</label>
+          <input class="form-input" id="lf-name" placeholder="Dr. Razali Ahmad">
+        </div>
+        <div class="form-group">
+          <label>Email *</label>
+          <input class="form-input" id="lf-email" type="email" placeholder="razali@monash.edu">
+        </div>
+        <div class="form-group">
+          <label>Staff Number *</label>
+          <input class="form-input" id="lf-staffno" placeholder="LCS001">
+        </div>
+        <div class="form-group">
+          <label>Course *</label>
+          <select class="form-select" id="lf-course"></select>
+        </div>
+        <div class="form-group">
+          <label>MyKad Number</label>
+          <input class="form-input" id="lf-mykad" placeholder="780304101234">
+        </div>
+        <div class="form-group" id="lf-password-group">
+          <label>Password *</label>
+          <input class="form-input" id="lf-password" type="password" placeholder="SecurePass1!">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-lecturer')">Cancel</button>
+      <button class="btn btn-primary" id="lecturer-save-btn" onclick="saveLecturer()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+        Save Lecturer
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- HEAD LECTURER MODAL -->
+<div class="modal-overlay" id="modal-hl">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="hl-modal-title">Add Head Lecturer</h3>
+      <button class="btn btn-ghost btn-icon" onclick="closeModal('modal-hl')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="hl-form-errors" class="field-errors" style="display:none"></div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Full Name *</label>
+          <input class="form-input" id="hlf-name" placeholder="Prof. Dr. Azman">
+        </div>
+        <div class="form-group">
+          <label>Email *</label>
+          <input class="form-input" id="hlf-email" type="email" placeholder="azman@monash.edu">
+        </div>
+        <div class="form-group">
+          <label>Staff Number *</label>
+          <input class="form-input" id="hlf-staffno" placeholder="HL001">
+        </div>
+        <div class="form-group">
+          <label>MyKad Number</label>
+          <input class="form-input" id="hlf-mykad" placeholder="700101101234">
+        </div>
+        <div class="form-group full" id="hlf-password-group">
+          <label>Password *</label>
+          <input class="form-input" id="hlf-password" type="password" placeholder="SecurePass1!">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-hl')">Cancel</button>
+      <button class="btn btn-primary" id="hl-save-btn" onclick="saveHL()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- COURSE MODAL -->
+<div class="modal-overlay" id="modal-course">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="course-modal-title">Add Course</h3>
+      <button class="btn btn-ghost btn-icon" onclick="closeModal('modal-course')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="course-form-errors" class="field-errors" style="display:none"></div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Course Code *</label>
+          <input class="form-input" id="cf-code" placeholder="CS">
+        </div>
+        <div class="form-group">
+          <label>Course Name *</label>
+          <input class="form-input" id="cf-name" placeholder="Computer Science">
+        </div>
+        <div class="form-group full">
+          <label>Description</label>
+          <textarea class="form-input" id="cf-desc" rows="3" placeholder="Brief description…"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-course')">Cancel</button>
+      <button class="btn btn-primary" id="course-save-btn" onclick="saveCourse()">Save Course</button>
+    </div>
+  </div>
+</div>
+
+<!-- UPLOAD MODAL -->
+<div class="modal-overlay" id="modal-upload">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Upload Document</h3>
+      <button class="btn btn-ghost btn-icon" onclick="closeModal('modal-upload')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid cols-1">
+        <div class="form-group">
+          <label>Category *</label>
+          <select class="form-select" id="upload-cat">
+            <option value="IC">IC (MyKad)</option>
+            <option value="TRANSCRIPT">Transcript</option>
+            <option value="PROFILE_PICTURE">Profile Picture</option>
+            <option value="DOCUMENT">Document</option>
+            <option value="OTHER">Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>File *</label>
+          <label class="upload-zone" for="upload-file-input">
+            <input type="file" id="upload-file-input" accept=".pdf,.jpg,.jpeg,.png" onchange="previewFile(this)">
+            <span id="upload-preview" class="upload-preview-block">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom:8px"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+              <span style="font-size:13px;font-weight:600;display:block">Click to choose file</span>
+              <span style="font-size:11px;margin-top:4px;display:block">PDF, JPG, PNG — max 10MB</span>
+            </span>
+          </label>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-upload')">Cancel</button>
+      <button class="btn btn-primary" id="upload-btn" onclick="uploadDocument()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+        Upload
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- PROFILE EDIT MODAL -->
+<div class="modal-overlay" id="modal-profile-edit">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Edit Profile</h3>
+      <button class="btn btn-ghost btn-icon" onclick="closeModal('modal-profile-edit')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>Full Name</label>
+          <input class="form-input" id="pe-name" placeholder="Full name">
+        </div>
+        <div class="form-group">
+          <label>Phone Number</label>
+          <input class="form-input" id="pe-phone" placeholder="e.g. 012-3456789 or 03-12345678" type="tel" inputmode="tel">
+        </div>
+        <div class="form-group">
+          <label>Gender</label>
+          <select class="form-select" id="pe-gender">
+            <option value="">— Select —</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Race</label>
+          <select class="form-select" id="pe-race">
+            <option value="">— Select —</option>
+            <option value="Malay">Malay</option>
+            <option value="Chinese">Chinese</option>
+            <option value="Indian">Indian</option>
+            <option value="Others">Others</option>
+          </select>
+        </div>
+        <div class="form-group" id="pe-mykad-wrap" style="display:none">
+          <label>MyKad (IC) Number *</label>
+          <input class="form-input" id="pe-mykad" placeholder="e.g. 020101141234" maxlength="12" inputmode="numeric" oninput="onMyKadInput(this)" required>
+          <small class="muted" style="display:block;margin-top:4px">12 digits required — date of birth below is filled from IC</small>
+        </div>
+        <div class="form-group">
+          <label>Date of Birth</label>
+          <input class="form-input" id="pe-dob" type="date">
+        </div>
+        <div class="form-group full">
+          <label>Address Line 1</label>
+          <input class="form-input" id="pe-addr1" placeholder="Street address">
+        </div>
+        <div class="form-group full">
+          <label>Address Line 2</label>
+          <input class="form-input" id="pe-addr2" placeholder="Apartment, suite, etc.">
+        </div>
+        <div class="form-group">
+          <label>Postcode</label>
+          <input class="form-input" id="pe-postcode" placeholder="43100">
+        </div>
+        <div class="form-group">
+          <label>City</label>
+          <input class="form-input" id="pe-city" placeholder="Kajang">
+        </div>
+        <div class="form-group full">
+          <label>State</label>
+          <select class="form-select" id="pe-state">
+            <option value="">— Select State —</option>
+            <option>Johor</option><option>Kedah</option><option>Kelantan</option>
+            <option>Melaka</option><option>NegeriSembilan</option><option>Pahang</option>
+            <option>Perak</option><option>Perlis</option><option>PulauPinang</option>
+            <option>Sabah</option><option>Sarawak</option><option>Selangor</option>
+            <option>Terengganu</option><option>KualaLumpur</option>
+            <option>Labuan</option><option>Putrajaya</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-profile-edit')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveProfile()">Save Profile</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── JAVASCRIPT ──────────────────────────────────────────── -->
+<script>
+// ─── CONFIG ────────────────────────────────────────────────
+const API_BASE = 'http://localhost:4000/api'
+let accessToken = null
+let currentUser = null
+let debounceTimer = null
+let editingId = null
+let courses = []
+let cachedProfilePictureUrl = null
+
+// ─── UTILS ─────────────────────────────────────────────────
+const $ = id => document.getElementById(id)
+const debounce = fn => { clearTimeout(debounceTimer); debounceTimer = setTimeout(fn, 400) }
+const fmt = d => d ? new Date(d).toLocaleDateString('en-MY',{day:'2-digit',month:'short',year:'numeric'}) : '—'
+const initials = name => name?.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase() || '?'
+const fmtSize = b => b > 1048576 ? (b/1048576).toFixed(1)+'MB' : (b/1024).toFixed(0)+'KB'
+const courseClass = code => `ct-${code}`
+
+const avatarImg = (url, name) =>
+  url ? `<img src="${url}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">` : initials(name)
+
+function avatarHtml(person, nameFallback) {
+  return avatarImg(person?.documents?.[0]?.fileUrl, nameFallback ?? person?.user?.name)
+}
+
+// Parse Malaysian MyKad (12 digits): first 6 = YYMMDD. YY 00-30 → 20xx, 31-99 → 19xx. Returns YYYY-MM-DD or null.
+function dobFromMyKad(ic) {
+  const digits = String(ic).replace(/\D/g, '')
+  if (digits.length !== 12) return null
+  const yy = parseInt(digits.slice(0, 2), 10)
+  const mm = digits.slice(2, 4)
+  const dd = digits.slice(4, 6)
+  const year = yy <= 30 ? 2000 + yy : 1900 + yy
+  const month = parseInt(mm, 10)
+  const day = parseInt(dd, 10)
+  if (month < 1 || month > 12 || day < 1 || day > 31) return null
+  return `${year}-${mm}-${dd}`
+}
+
+function onMyKadInput(inputEl) {
+  inputEl.value = inputEl.value.replace(/\D/g, '').slice(0, 12)
+  const dob = dobFromMyKad(inputEl.value)
+  if (dob) $('pe-dob').value = dob
+}
+
+async function api(path, options={}) {
+  const res = await fetch(API_BASE + path, {
+    ...options,
+    credentials: 'include',
+    headers: {
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      ...(options.body && !(options.body instanceof FormData) ? { 'Content-Type': 'application/json' } : {}),
+      ...options.headers,
+    },
+    body: options.body instanceof FormData ? options.body :
+          options.body ? JSON.stringify(options.body) : undefined,
+  })
+
+  let data
+  try { data = await res.json() } catch { data = {} }
+
+  // Only clear session on 401 when we had a token (expired) and not for logout endpoint (avoids cascade)
+  if (res.status === 401 && path !== '/auth/logout' && accessToken) {
+    doLogout()
+    return null
+  }
+
+  return { ok: res.ok, status: res.status, data }
+}
+
+// ─── TOAST ─────────────────────────────────────────────────
+function toast(msg, type='info', duration=3500) {
+  const icons = { success:'✓', error:'✕', info:'ℹ' }
+  const el = document.createElement('div')
+  el.className = `toast ${type}`
+  el.innerHTML = `<span>${icons[type]}</span><span>${msg}</span>`
+  $('toasts').appendChild(el)
+  setTimeout(() => el.remove(), duration)
+}
+
+// Use API error message (message or errors[].message); fallback only if API sent nothing
+function apiErrMsg(r, fallback) {
+  if (!r?.data) return fallback || 'Request failed'
+  if (r.data.errors?.length) return r.data.errors.map(e => e.message).join('. ')
+  return r.data.message || fallback || 'Request failed'
+}
+
+// ─── AUTH ───────────────────────────────────────────────────
+function showLogin() {
+  $('register-form-wrap').style.display = 'none'
+  $('login-form-wrap').style.display = 'block'
+  $('forgot-form-wrap').style.display = 'none'
+  $('reset-form-wrap').style.display = 'none'
+  $('demo-users-wrap').style.display = 'block'
+  $('register-errors').style.display = 'none'
+  $('login-errors').style.display = 'none'
+}
+
+function showRegister() {
+  $('login-form-wrap').style.display = 'none'
+  $('register-form-wrap').style.display = 'block'
+  $('forgot-form-wrap').style.display = 'none'
+  $('reset-form-wrap').style.display = 'none'
+  $('demo-users-wrap').style.display = 'none'
+  $('login-errors').style.display = 'none'
+  $('register-errors').style.display = 'none'
+}
+
+function showForgotPassword() {
+  $('login-form-wrap').style.display = 'none'
+  $('register-form-wrap').style.display = 'none'
+  $('forgot-form-wrap').style.display = 'block'
+  $('reset-form-wrap').style.display = 'none'
+  $('demo-users-wrap').style.display = 'none'
+  $('forgot-errors').style.display = 'none'
+}
+
+function showResetForm() {
+  $('login-form-wrap').style.display = 'none'
+  $('register-form-wrap').style.display = 'none'
+  $('forgot-form-wrap').style.display = 'none'
+  $('reset-form-wrap').style.display = 'block'
+  $('demo-users-wrap').style.display = 'none'
+  $('reset-errors').style.display = 'none'
+}
+
+function fillDemo(email, pass) {
+  $('login-email').value = email
+  $('login-password').value = pass
+}
+
+async function doRegister() {
+  const errDiv = $('register-errors')
+  errDiv.style.display = 'none'
+
+  const body = {
+    name: $('reg-name').value,
+    email: $('reg-email').value,
+    password: $('reg-password').value,
+    confirmPassword: $('reg-confirm').value,
+    studentNumber: $('reg-student-number').value || undefined,
+  }
+
+  const btn = $('register-btn')
+  btn.disabled = true
+  btn.textContent = 'Creating account…'
+
+  const r = await api('/auth/register', { method: 'POST', body })
+
+  btn.disabled = false
+  btn.textContent = 'Create account'
+
+  if (!r) return
+  if (r.status === 429) {
+    toast(r.data?.message || 'Too many requests. Please try again later.', 'error')
+    return
+  }
+  if (!r.ok) {
+    showFormErrors('register-errors', r.data)
+    return
+  }
+
+  toast(r.data?.message || 'Account created. Check your email to verify.', 'success')
+  $('login-email').value = $('reg-email').value
+  showLogin()
+}
+
+async function doLogin() {
+  const email = $('login-email').value.trim()
+  const password = $('login-password').value
+  const btn = $('login-btn')
+  btn.disabled = true; btn.textContent = 'Signing in…'
+
+  const r = await api('/auth/login', { method:'POST', body: { email, password } })
+  btn.disabled = false; btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>Sign In`
+
+  if (!r) return
+  if (r.status === 429) {
+    toast(r.data?.message || 'Too many requests. Please try again later.', 'error')
+    return
+  }
+  if (!r.ok) {
+    showFormErrors('login-errors', r.data)
+    return
+  }
+
+  accessToken = r.data.data.accessToken
+  currentUser = r.data.data.user
+  $('login-errors').style.display = 'none'
+  bootApp()
+}
+
+async function doLogout() {
+  await api('/auth/logout', { method:'POST' })
+  accessToken = null; currentUser = null
+  stopHealthCheck()
+  $('app').style.display = 'none'
+  $('login-page').classList.remove('hidden')
+  $('login-page').style.display = 'flex'
+}
+
+async function doForgotPassword() {
+  const errDiv = $('forgot-errors')
+  errDiv.style.display = 'none'
+  const email = $('forgot-email').value.trim()
+  if (!email) {
+    errDiv.innerHTML = '<p>• Please enter your email.</p>'
+    errDiv.style.display = 'block'
+    return
+  }
+  const btn = $('forgot-btn')
+  btn.disabled = true
+  btn.textContent = 'Sending…'
+  const r = await api('/auth/forgot-password', { method: 'POST', body: { email } })
+  btn.disabled = false
+  btn.textContent = 'Send reset link'
+  if (!r) return
+  if (r.status === 429) {
+    toast(r.data?.message || 'Too many requests. Please try again later.', 'error')
+    return
+  }
+  if (!r.ok) {
+    showFormErrors('forgot-errors', r.data)
+    return
+  }
+  toast(r.data?.message || 'If an account exists, we sent a reset link to your email.', 'success')
+  $('forgot-email').value = ''
+  showLogin()
+}
+
+async function doResetPassword() {
+  const params = new URLSearchParams(window.location.search)
+  const token = params.get('token')
+  const errDiv = $('reset-errors')
+  errDiv.style.display = 'none'
+  if (!token) {
+    errDiv.innerHTML = '<p>• Missing reset token. Use the link from your email.</p>'
+    errDiv.style.display = 'block'
+    return
+  }
+  const password = $('reset-password').value
+  const confirmPassword = $('reset-confirm').value
+  const btn = $('reset-btn')
+  btn.disabled = true
+  btn.textContent = 'Resetting…'
+  const r = await api('/auth/reset-password', { method: 'POST', body: { token, password, confirmPassword } })
+  btn.disabled = false
+  btn.textContent = 'Reset password'
+  if (!r) return
+  if (r.status === 429) {
+    toast(r.data?.message || 'Too many requests. Please try again later.', 'error')
+    return
+  }
+  if (!r.ok) {
+    showFormErrors('reset-errors', r.data)
+    return
+  }
+  toast(r.data?.message || 'Password reset. Please sign in.', 'success')
+  window.history.replaceState({}, '', window.location.pathname)
+  $('reset-password').value = ''
+  $('reset-confirm').value = ''
+  showLogin()
+}
+
+// Restore session on reload using refresh cookie (no token in memory survives reload)
+async function restoreSession() {
+  try {
+    const res = await fetch(API_BASE + '/auth/refresh', { method: 'POST', credentials: 'include' })
+    const body = await res.json().catch(() => ({}))
+    if (!res.ok || !body?.data?.accessToken) return
+    accessToken = body.data.accessToken
+    const r = await api('/auth/me')
+    if (!r?.ok || !r.data?.data) {
+      accessToken = null
+      return
+    }
+    currentUser = r.data.data
+    bootApp()
+  } catch {
+    // no session or network error — leave login page visible
+  }
+}
+
+// ─── BOOT ───────────────────────────────────────────────────
+async function bootApp() {
+  $('login-page').classList.add('hidden')
+  setTimeout(() => { $('login-page').style.display = 'none'; $('app').style.display = 'flex' }, 400)
+
+  const role = currentUser.type
+  $('sidebar-name').textContent = currentUser.name
+  $('sidebar-role').textContent = role.replace('_',' ')
+  updateSidebarAvatar()
+
+  // set API indicator and start health check (every 2 min)
+  $('api-dot').className = 'api-dot'
+  startHealthCheck()
+  $('api-url').textContent = API_BASE
+
+  // hide write buttons if not HEAD_LECTURER
+  const isHL = role === 'HEAD_LECTURER'
+  const isStudent = role === 'STUDENT'
+  document.querySelectorAll('#btn-add-student,#btn-add-lecturer,#btn-add-hl,#btn-add-course').forEach(b=>b.style.display=isHL?'inline-flex':'none')
+  if(isStudent){
+    $('nav-students').style.display='none'
+    $('nav-lecturers').style.display='none'
+    $('nav-headlecturers').style.display='none'
+    $('nav-admin-label').style.display='none'
+  }
+
+  // load courses for dropdowns
+  await loadCoursesDropdown()
+  navigate('dashboard')
+  loadStats()
+  // Fetch profile picture from documents (PROFILE_PICTURE) for all users (student, lecturer, head lecturer)
+  const docRes = await api('/me/documents')
+  if (docRes?.ok && Array.isArray(docRes.data?.data)) {
+    const pic = docRes.data.data.find(d => d.category === 'PROFILE_PICTURE')
+    cachedProfilePictureUrl = pic?.fileUrl || null
+    updateSidebarAvatar()
+  } else if (docRes?.status === 404) {
+    cachedProfilePictureUrl = null
+    updateSidebarAvatar()
+  }
+}
+
+function updateSidebarAvatar() {
+  const el = $('sidebar-avatar')
+  if (!el) return
+  el.innerHTML = avatarImg(cachedProfilePictureUrl, currentUser?.name)
+}
+
+// ─── NAVIGATION ────────────────────────────────────────────
+function navigate(page) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'))
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'))
+  $(`page-${page}`)?.classList.add('active')
+  document.querySelector(`[data-page="${page}"]`)?.classList.add('active')
+  const titles = {
+    dashboard:'Dashboard',students:'Students',lecturers:'Lecturers',
+    headlecturers:'Head Lecturers',courses:'Courses',profile:'My Profile',documents:'My Documents'
+  }
+  $('topbar-title').innerHTML = `${titles[page]||page}`
+
+  if(page==='students') loadStudents(1)
+  if(page==='lecturers') loadLecturers(1)
+  if(page==='headlecturers') loadHeadLecturers(1)
+  if(page==='courses') loadCourses(1)
+  if(page==='profile') loadProfile()
+  if(page==='documents') loadMyDocuments()
+}
+
+// ─── STATS / DASHBOARD ─────────────────────────────────────
+async function loadStats() {
+  const r = await api('/stats')
+  if (!r?.ok) { toast(apiErrMsg(r, 'Could not load stats'), 'error'); return }
+
+  const d = r.data.data
+  $('stat-students').textContent = d.totalStudents ?? '—'
+  $('stat-lecturers').textContent = d.totalLecturers ?? '—'
+  $('stat-courses').textContent = d.totalCourses ?? '—'
+  $('stat-hl').textContent = d.totalHeadLecturers ?? '—'
+  $('stat-students-sub').textContent = `${d.activeUsers ?? '—'} active users total`
+  $('nb-students').textContent = d.totalStudents ?? '—'
+  $('nb-lecturers').textContent = d.totalLecturers ?? '—'
+
+  // courses breakdown
+  const cbEl = $('courses-breakdown')
+  if (d.studentsByCourse?.length) {
+    cbEl.innerHTML = d.studentsByCourse.map(c=>`
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <div class="course-tag ${courseClass(c.courseCode)}">${c.courseCode}</div>
+        <div style="flex:1">
+          <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+            <span style="font-size:12px">${c.courseName}</span>
+            <span class="td-mono">${c.total}</span>
+          </div>
+          <div style="height:3px;background:var(--border);border-radius:99px;overflow:hidden">
+            <div style="height:100%;width:${Math.min(100,(c.total/Math.max(...d.studentsByCourse.map(x=>x.total)))*100)}%;background:var(--accent);border-radius:99px"></div>
+          </div>
+        </div>
+      </div>`).join('')
+  } else {
+    cbEl.innerHTML = `<div class="empty"><div class="empty-icon">📊</div><h4>No data yet</h4></div>`
+  }
+
+  // recent registrations (with profile picture when available)
+  const rrEl = $('recent-reg')
+  if (d.recentRegistrations?.length) {
+    rrEl.innerHTML = d.recentRegistrations.map(u=>{
+      return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <div class="avatar">${avatarImg(u.profilePictureUrl, u.name)}</div>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:500">${u.name}</div>
+          <div style="font-size:11px;color:var(--text2)">${u.type.replace('_',' ')}</div>
+        </div>
+        <div style="font-size:11px;color:var(--text3)">${fmt(u.createdAt)}</div>
+      </div>`
+    }).join('')
+  } else {
+    rrEl.innerHTML = `<div class="empty"><div class="empty-icon">🕐</div><h4>No recent activity</h4></div>`
+  }
+}
+
+// ─── COURSES DROPDOWN ──────────────────────────────────────
+async function loadCoursesDropdown() {
+  const r = await api('/courses?limit=100')
+  if (!r?.ok) { toast(apiErrMsg(r, 'Could not load courses'), 'error'); return }
+  courses = r.data.data || []
+  const opts = courses.map(c=>`<option value="${c.courseCode}">${c.courseName} (${c.courseCode})</option>`).join('')
+  ;['sf-course','lf-course','lecturer-course','student-course'].forEach(id=>{
+    const el = $(id); if(!el) return
+    const isFilter = id.includes('student-course') || id.includes('lecturer-course')
+    el.innerHTML = isFilter
+      ? `<option value="">All Courses</option>${opts}`
+      : `<option value="">— Select Course —</option>${opts}`
+  })
+}
+
+// ─── STUDENTS ──────────────────────────────────────────────
+async function loadStudents(page=1) {
+  const search = $('student-search')?.value || ''
+  const courseCode = $('student-course')?.value || ''
+  const gender = $('student-gender')?.value || ''
+  const params = new URLSearchParams({page,limit:10,...(search&&{search}),...(courseCode&&{courseCode}),...(gender&&{gender})})
+
+  $('student-tbody').innerHTML = `<tr><td colspan="7"><div class="loading"><div class="spinner"></div></div></td></tr>`
+
+  const r = await api(`/students?${params}`)
+  if (!r?.ok) {
+    const msg = apiErrMsg(r, 'Could not load students')
+    toast(msg, 'error')
+    $('student-tbody').innerHTML = `<tr><td colspan="7"><div class="empty"><div class="empty-icon">⚠️</div><h4>Error</h4><p>${msg}</p></div></td></tr>`
+    $('student-pag').innerHTML = ''
+    return
+  }
+
+  const { data, meta } = r.data
+  const dataList = Array.isArray(data) ? data : []
+  if (!dataList?.length) {
+    $('student-tbody').innerHTML = `<tr><td colspan="7"><div class="empty"><div class="empty-icon">👨‍🎓</div><h4>No students found</h4><p>Try adjusting your filters</p></div></td></tr>`
+    $('student-pag').innerHTML = ''
+    return
+  }
+
+  $('student-tbody').innerHTML = dataList.map(s=>`
+    <tr>
+      <td>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="avatar">${avatarHtml(s)}</div>
+          <div>
+            <div style="font-weight:500;font-size:13px">${s.user?.name||'—'}</div>
+            <div style="font-size:11px;color:var(--text2)">${s.user?.email||'—'}</div>
+          </div>
+        </div>
+      </td>
+      <td><span class="td-mono">${s.studentNumber}</span></td>
+      <td><span class="course-tag ${courseClass(s.course?.courseCode)}">${s.course?.courseCode||'—'}</span></td>
+      <td>${s.profile?.gender||'—'}</td>
+      <td><span class="badge ${s.user?.status==='ACTIVE'?'badge-green':'badge-gray'}"><span class="badge-dot"></span>${s.user?.status||'—'}</span></td>
+      <td class="td-mono" style="font-size:11px">${fmt(s.createdAt)}</td>
+      <td>
+        <div style="display:flex;gap:4px">
+          <button class="btn btn-ghost btn-sm btn-icon" onclick="viewStudent('${s.studentId}')" title="View">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+          ${currentUser?.type==='HEAD_LECTURER'?`
+          <button class="btn btn-ghost btn-sm btn-icon" onclick="openStudentModal('${s.studentId}')" title="Edit">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button class="btn btn-danger btn-sm btn-icon" onclick="deleteStudent('${s.studentId}','${s.user?.name}')" title="Delete">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+          </button>`:``}
+        </div>
+      </td>
+    </tr>`).join('')
+
+  renderPagination('student-pag', meta || r.data.meta, page, p=>loadStudents(p))
+}
+
+async function viewStudent(id) {
+  $('view-student-errors').style.display = 'none'
+  $('view-student-content').innerHTML = '<div class="loading"><div class="spinner"></div></div>'
+  openModal('modal-view-student')
+
+  const r = await api(`/students/${id}`)
+  if (!r?.ok) {
+    const msg = apiErrMsg(r, 'Could not load student')
+    toast(msg, 'error')
+    $('view-student-content').innerHTML = ''
+    $('view-student-errors').textContent = msg
+    $('view-student-errors').style.display = 'block'
+    return
+  }
+
+  const s = r.data.data
+  const row = (label, value) => `<div class="view-detail-row"><span class="view-detail-label">${label}</span><span class="view-detail-value">${value != null && value !== '' ? value : '—'}</span></div>`
+  const docs = (s.documents || []).map(d => `<a href="${d.fileUrl}" target="_blank" class="view-detail-value" style="display:block">${d.originalName} (${fmtSize(Number(d.fileSize))})</a>`).join('') || '—'
+
+  $('view-student-content').innerHTML = [
+    `<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+      <div class="detail-avatar">${avatarHtml(s)}</div>
+      <div><h3 style="margin:0;font-size:18px">${s.user?.name || '—'}</h3><div style="font-size:12px;color:var(--text2)">${s.user?.email || '—'}</div></div>
+    </div>`,
+    row('Name', s.user?.name),
+    row('Email', s.user?.email),
+    row('Student number', s.studentNumber),
+    row('Course', s.course ? `${s.course.courseName} (${s.course.courseCode})` : ''),
+    row('Gender', s.profile?.gender),
+    row('MyKad', s.mykadNumber),
+    row('Status', s.user?.status),
+    row('Joined', fmt(s.createdAt)),
+    row('Documents', docs),
+  ].join('')
+}
+
+async function openStudentModal(id=null) {
+  editingId = id
+  $('student-modal-title').textContent = id ? 'Edit Student' : 'Add Student'
+  $('student-form-errors').style.display = 'none'
+  $('sf-password-group').style.display = id ? 'none' : 'flex'
+
+  if(id) {
+    const r = await api(`/students/${id}`)
+    if(!r?.ok) { toast(apiErrMsg(r, 'Could not load student'), 'error'); return }
+    const s = r.data.data
+    $('sf-name').value = s.user?.name||''
+    $('sf-email').value = s.user?.email||''
+    $('sf-studentno').value = s.studentNumber||''
+    $('sf-course').value = s.course?.courseCode||''
+    $('sf-mykad').value = s.mykadNumber||''
+  } else {
+    ;['sf-name','sf-email','sf-studentno','sf-mykad','sf-password'].forEach(id=>$(id).value='')
+    $('sf-course').value = ''
+  }
+  openModal('modal-student')
+}
+
+async function saveStudent() {
+  const btn = $('student-save-btn')
+  btn.disabled = true; btn.textContent = 'Saving…'
+
+  const body = {
+    name: $('sf-name').value,
+    email: $('sf-email').value,
+    studentNumber: $('sf-studentno').value,
+    courseCode: $('sf-course').value,
+    mykadNumber: $('sf-mykad').value || undefined,
+    ...(!editingId && { password: $('sf-password').value }),
+  }
+
+  const r = editingId
+    ? await api(`/students/${editingId}`, { method:'PATCH', body })
+    : await api('/students', { method:'POST', body })
+
+  btn.disabled = false; btn.textContent = 'Save Student'
+
+  if (!r?.ok) {
+    showFormErrors('student-form-errors', r.data)
+    return
+  }
+
+  toast(editingId?'Student updated':'Student created', 'success')
+  closeModal('modal-student')
+  loadStudents(1)
+  loadStats()
+}
+
+async function deleteStudent(id, name) {
+  if (!confirm(`Delete student "${name}"? This cannot be undone.`)) return
+  const r = await api(`/students/${id}`, { method:'DELETE' })
+  if (r?.status===204||r?.ok) {
+    toast('Student deleted','success')
+    loadStudents(1); loadStats()
+  } else {
+    toast(apiErrMsg(r, 'Could not delete student'), 'error')
+  }
+}
+
+// ─── LECTURERS ──────────────────────────────────────────────
+async function loadLecturers(page=1) {
+  const search = $('lecturer-search')?.value || ''
+  const courseCode = $('lecturer-course')?.value || ''
+  const params = new URLSearchParams({page,limit:10,...(search&&{search}),...(courseCode&&{courseCode})})
+
+  $('lecturer-tbody').innerHTML = `<tr><td colspan="6"><div class="loading"><div class="spinner"></div></div></td></tr>`
+
+  const r = await api(`/lecturers?${params}`)
+  if (!r?.ok) { toast(apiErrMsg(r, 'Could not load lecturers'), 'error'); return }
+
+  const { data, meta } = r.data
+  if (!data?.length) {
+    $('lecturer-tbody').innerHTML = `<tr><td colspan="6"><div class="empty"><div class="empty-icon">👨‍🏫</div><h4>No lecturers found</h4></div></td></tr>`
+    $('lecturer-pag').innerHTML = ''; return
+  }
+
+  $('lecturer-tbody').innerHTML = data.map(l=>`
+    <tr>
+      <td>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="avatar" style="background:linear-gradient(135deg,var(--gold),var(--gold2));color:#111">${avatarHtml(l)}</div>
+          <div>
+            <div style="font-weight:500;font-size:13px">${l.user?.name||'—'}</div>
+            <div style="font-size:11px;color:var(--text2)">${l.user?.email||'—'}</div>
+          </div>
+        </div>
+      </td>
+      <td><span class="td-mono">${l.staffNumber}</span></td>
+      <td><span class="course-tag ${courseClass(l.course?.courseCode)}">${l.course?.courseCode||'—'}</span></td>
+      <td><span class="badge ${l.user?.status==='ACTIVE'?'badge-green':'badge-gray'}"><span class="badge-dot"></span>${l.user?.status||'—'}</span></td>
+      <td class="td-mono" style="font-size:11px">${fmt(l.createdAt)}</td>
+      <td>
+        <div style="display:flex;gap:4px">
+          ${currentUser?.type==='HEAD_LECTURER'?`
+          <button class="btn btn-ghost btn-sm btn-icon" onclick="openLecturerModal('${l.lecturerId}')" title="Edit">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button class="btn btn-danger btn-sm btn-icon" onclick="deleteLecturer('${l.lecturerId}','${l.user?.name}')" title="Delete">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+          </button>`:``}
+        </div>
+      </td>
+    </tr>`).join('')
+
+  renderPagination('lecturer-pag', meta, page, p=>loadLecturers(p))
+}
+
+async function openLecturerModal(id=null) {
+  editingId = id
+  $('lecturer-modal-title').textContent = id ? 'Edit Lecturer' : 'Add Lecturer'
+  $('lecturer-form-errors').style.display = 'none'
+  $('lf-password-group').style.display = id ? 'none' : 'flex'
+
+  if(id){
+    const r = await api(`/lecturers/${id}`)
+    if(!r?.ok){ toast(apiErrMsg(r, 'Could not load lecturer'), 'error'); return }
+    const l = r.data.data
+    $('lf-name').value = l.user?.name||''
+    $('lf-email').value = l.user?.email||''
+    $('lf-staffno').value = l.staffNumber||''
+    $('lf-course').value = l.course?.courseCode||''
+    $('lf-mykad').value = l.mykadNumber||''
+  } else {
+    ;['lf-name','lf-email','lf-staffno','lf-mykad','lf-password'].forEach(id=>$(id).value='')
+    $('lf-course').value=''
+  }
+  openModal('modal-lecturer')
+}
+
+async function saveLecturer() {
+  const btn = $('lecturer-save-btn')
+  btn.disabled=true; btn.textContent='Saving…'
+  const body = {
+    name:$('lf-name').value, email:$('lf-email').value,
+    staffNumber:$('lf-staffno').value, courseCode:$('lf-course').value,
+    mykadNumber:$('lf-mykad').value||undefined,
+    ...(!editingId&&{password:$('lf-password').value}),
+  }
+  const r = editingId
+    ? await api(`/lecturers/${editingId}`,{method:'PATCH',body})
+    : await api('/lecturers',{method:'POST',body})
+  btn.disabled=false; btn.textContent='Save Lecturer'
+  if(!r?.ok){ showFormErrors('lecturer-form-errors',r.data); return }
+  toast(editingId?'Lecturer updated':'Lecturer created','success')
+  closeModal('modal-lecturer'); loadLecturers(1); loadStats()
+}
+
+async function deleteLecturer(id,name){
+  if(!confirm(`Delete lecturer "${name}"?`)) return
+  const r = await api(`/lecturers/${id}`,{method:'DELETE'})
+  if(r?.status===204||r?.ok){ toast('Lecturer deleted','success'); loadLecturers(1); loadStats() }
+  else toast(apiErrMsg(r, 'Could not delete lecturer'), 'error')
+}
+
+// ─── HEAD LECTURERS ─────────────────────────────────────────
+async function loadHeadLecturers(page=1) {
+  $('hl-tbody').innerHTML = `<tr><td colspan="5"><div class="loading"><div class="spinner"></div></div></td></tr>`
+  const r = await api(`/head-lecturers?page=${page}&limit=10`)
+  if(!r?.ok){ toast(apiErrMsg(r, 'Could not load head lecturers'), 'error'); return }
+  const {data,meta} = r.data
+  if(!data?.length){
+    $('hl-tbody').innerHTML=`<tr><td colspan="5"><div class="empty"><div class="empty-icon">⭐</div><h4>No head lecturers found</h4></div></td></tr>`
+    $('hl-pag').innerHTML=''; return
+  }
+  $('hl-tbody').innerHTML = data.map(h=>`
+    <tr>
+      <td>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="avatar" style="background:linear-gradient(135deg,#7b5ea7,#b07ef0)">${avatarHtml(h)}</div>
+          <div>
+            <div style="font-weight:500">${h.user?.name||'—'}</div>
+            <div style="font-size:11px;color:var(--text2)">${h.user?.email||'—'}</div>
+          </div>
+        </div>
+      </td>
+      <td><span class="td-mono">${h.staffNumber}</span></td>
+      <td><span class="badge ${h.user?.status==='ACTIVE'?'badge-green':'badge-gray'}"><span class="badge-dot"></span>${h.user?.status||'—'}</span></td>
+      <td class="td-mono" style="font-size:11px">${fmt(h.createdAt)}</td>
+      <td>
+        ${currentUser?.type==='HEAD_LECTURER'?`
+        <div style="display:flex;gap:4px">
+          <button class="btn btn-ghost btn-sm btn-icon" onclick="openHLModal('${h.headLecturerId}')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+        </div>`:''}
+      </td>
+    </tr>`).join('')
+  renderPagination('hl-pag',meta,page,p=>loadHeadLecturers(p))
+}
+
+async function openHLModal(id=null){
+  editingId=id
+  $('hl-modal-title').textContent=id?'Edit Head Lecturer':'Add Head Lecturer'
+  $('hl-form-errors').style.display='none'
+  $('hlf-password-group').style.display=id?'none':'flex'
+  if(id){
+    const r=await api(`/head-lecturers/${id}`)
+    if(!r?.ok){ toast(apiErrMsg(r, 'Could not load head lecturer'), 'error'); return }
+    const h=r.data.data
+    $('hlf-name').value=h.user?.name||''
+    $('hlf-email').value=h.user?.email||''
+    $('hlf-staffno').value=h.staffNumber||''
+    $('hlf-mykad').value=h.mykadNumber||''
+  } else {
+    ;['hlf-name','hlf-email','hlf-staffno','hlf-mykad','hlf-password'].forEach(id=>$(id).value='')
+  }
+  openModal('modal-hl')
+}
+
+async function saveHL(){
+  const btn=$('hl-save-btn'); btn.disabled=true; btn.textContent='Saving…'
+  const body={name:$('hlf-name').value,email:$('hlf-email').value,staffNumber:$('hlf-staffno').value,mykadNumber:$('hlf-mykad').value||undefined,...(!editingId&&{password:$('hlf-password').value})}
+  const r=editingId?await api(`/head-lecturers/${editingId}`,{method:'PATCH',body}):await api('/head-lecturers',{method:'POST',body})
+  btn.disabled=false; btn.textContent='Save'
+  if(!r?.ok){ showFormErrors('hl-form-errors',r.data); return }
+  toast(editingId?'Updated':'Created','success')
+  closeModal('modal-hl'); loadHeadLecturers(1)
+}
+
+// ─── COURSES ────────────────────────────────────────────────
+async function loadCourses(page=1){
+  $('course-tbody').innerHTML=`<tr><td colspan="6"><div class="loading"><div class="spinner"></div></div></td></tr>`
+  const r=await api(`/courses?page=${page}&limit=10`)
+  if(!r?.ok){ toast(apiErrMsg(r, 'Could not load courses'), 'error'); return }
+  const {data,meta}=r.data
+  if(!data?.length){
+    $('course-tbody').innerHTML=`<tr><td colspan="6"><div class="empty"><div class="empty-icon">📚</div><h4>No courses found</h4></div></td></tr>`
+    $('course-pag').innerHTML=''; return
+  }
+  $('course-tbody').innerHTML=data.map(c=>`
+    <tr>
+      <td style="font-weight:500">${c.courseName}</td>
+      <td><span class="course-tag ${courseClass(c.courseCode)}">${c.courseCode}</span></td>
+      <td><span class="badge badge-blue">${c.totalStudents??0} students</span></td>
+      <td><span class="badge badge-gold">${c.totalLecturers??0} lecturers</span></td>
+      <td><span class="badge ${c.isActive?'badge-green':'badge-gray'}"><span class="badge-dot"></span>${c.isActive?'Active':'Inactive'}</span></td>
+      <td>
+        ${currentUser?.type==='HEAD_LECTURER'?`
+        <div style="display:flex;gap:4px">
+          <button class="btn btn-ghost btn-sm btn-icon" onclick="openCourseModal('${c.courseId}')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button class="btn btn-danger btn-sm btn-icon" onclick="deleteCourse('${c.courseId}','${c.courseName}')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+          </button>
+        </div>`:''}
+      </td>
+    </tr>`).join('')
+  renderPagination('course-pag',meta,page,p=>loadCourses(p))
+}
+
+async function openCourseModal(id=null){
+  editingId=id
+  $('course-modal-title').textContent=id?'Edit Course':'Add Course'
+  $('course-form-errors').style.display='none'
+  if(id){
+    const r=await api(`/courses/${id}`)
+    if(!r?.ok){ toast(apiErrMsg(r, 'Could not load course'), 'error'); return }
+    const c=r.data.data
+    $('cf-code').value=c.courseCode||''
+    $('cf-name').value=c.courseName||''
+    $('cf-desc').value=c.description||''
+  } else {
+    ;['cf-code','cf-name','cf-desc'].forEach(id=>$(id).value='')
+  }
+  openModal('modal-course')
+}
+
+async function saveCourse(){
+  const btn=$('course-save-btn'); btn.disabled=true; btn.textContent='Saving…'
+  const body={courseCode:$('cf-code').value,courseName:$('cf-name').value,description:$('cf-desc').value||undefined}
+  const r=editingId?await api(`/courses/${editingId}`,{method:'PATCH',body}):await api('/courses',{method:'POST',body})
+  btn.disabled=false; btn.textContent='Save Course'
+  if(!r?.ok){ showFormErrors('course-form-errors',r.data); return }
+  toast(editingId?'Course updated':'Course created','success')
+  closeModal('modal-course'); loadCourses(1); loadCoursesDropdown()
+}
+
+async function deleteCourse(id,name){
+  if(!confirm(`Delete course "${name}"? This will unlink all students and lecturers.`)) return
+  const r=await api(`/courses/${id}`,{method:'DELETE'})
+  if(r?.status===204||r?.ok){ toast('Course deleted','success'); loadCourses(1) }
+  else toast(apiErrMsg(r, 'Could not delete course'), 'error')
+}
+
+// ─── PROFILE ────────────────────────────────────────────────
+async function loadProfile(){
+  const r=await api('/auth/me')
+  if(!r?.ok){ toast(apiErrMsg(r, 'Could not load profile'), 'error'); return }
+  const u=r.data.data
+  const docR=await api('/me/documents')
+  if(docR?.ok&&Array.isArray(docR.data?.data)){
+    const pic=docR.data.data.find(d=>d.category==='PROFILE_PICTURE')
+    cachedProfilePictureUrl=pic?.fileUrl||null
+  } else if(docR?.status===404) cachedProfilePictureUrl=null
+  updateSidebarAvatar()
+
+  const p=u.profile
+  const role=u.student?'student':u.lecturer?'lecturer':u.headLecturer?'headLecturer':null
+  const roleData=u[role]
+  const idField=role==='student'?`<div class="info-cell"><div class="info-label">Student No.</div><div class="info-val td-mono">${roleData?.studentNumber||'—'}</div></div>`:role==='lecturer'?`<div class="info-cell"><div class="info-label">Staff No.</div><div class="info-val td-mono">${roleData?.staffNumber||'—'}</div></div>`:role==='headLecturer'?`<div class="info-cell"><div class="info-label">Staff No.</div><div class="info-val td-mono">${roleData?.staffNumber||'—'}</div></div>`:''
+  const mykadField=(role==='student'||role==='lecturer')&&roleData?`<div class="info-cell"><div class="info-label">MyKad (IC)</div><div class="info-val td-mono">${roleData.mykadNumber||'—'}</div></div>`:''
+
+  const myAvatar = avatarImg(cachedProfilePictureUrl, u.name)
+  $('profile-content').innerHTML=`
+    <div class="detail-header">
+      <div class="detail-avatar avatar" id="profile-avatar" role="button" title="Click to upload or change profile picture" style="cursor:pointer" onclick="$('profile-picture-input').click()">${myAvatar}</div>
+      <div class="detail-meta">
+        <h2>${u.name}</h2>
+        <div class="detail-sub">
+          <span>${u.email}</span>
+          <span class="sep">·</span>
+          <span class="badge badge-blue">${u.type.replace('_',' ')}</span>
+          <span class="badge ${u.isEmailVerified?'badge-green':'badge-red'}">${u.isEmailVerified?'✓ Verified':'Unverified'}</span>
+        </div>
+        <input type="file" id="profile-picture-input" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="uploadProfilePicture(this)">
+        <button type="button" class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="$('profile-picture-input').click()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          ${cachedProfilePictureUrl?'Change profile picture':'Upload profile picture'}
+        </button>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="openProfileEdit()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        Edit Profile
+      </button>
+    </div>
+    <div class="panel" style="margin-bottom:16px">
+      <div class="panel-header"><h3>Personal Information</h3></div>
+      <div class="info-grid">
+        ${idField}
+        ${mykadField}
+        <div class="info-cell"><div class="info-label">Phone</div><div class="info-val">${p?.phoneNumber||'—'}</div></div>
+        <div class="info-cell"><div class="info-label">Gender</div><div class="info-val">${p?.gender||'—'}</div></div>
+        <div class="info-cell"><div class="info-label">Race</div><div class="info-val">${p?.race||'—'}</div></div>
+        <div class="info-cell"><div class="info-label">Date of Birth</div><div class="info-val">${p?.dateOfBirth?fmt(p.dateOfBirth):'—'}</div></div>
+        <div class="info-cell"><div class="info-label">State</div><div class="info-val">${p?.state||'—'}</div></div>
+        <div class="info-cell full" style="grid-column:1/-1"><div class="info-label">Address</div><div class="info-val">${p?.address?[p.address.streetOne,p.address.streetTwo,p.address.postcode,p.address.city].filter(Boolean).join(', '):'—'}</div></div>
+      </div>
+    </div>
+    ${role==='student'&&roleData?.course?`
+    <div class="panel">
+      <div class="panel-header"><h3>Enrolled Course</h3></div>
+      <div class="panel-body" style="display:flex;align-items:center;gap:12px">
+        <span class="course-tag ${courseClass(roleData.course.courseCode)}" style="font-size:14px;padding:6px 14px">${roleData.course.courseCode}</span>
+        <span style="font-size:15px;font-weight:500">${roleData.course.courseName}</span>
+      </div>
+    </div>`:''}
+  `
+}
+
+function openProfileEdit(){
+  const r=currentUser
+  $('pe-name').value=r?.name||''
+  const role=r?.student?'student':r?.lecturer?'lecturer':r?.headLecturer?'headLecturer':null
+  const roleData=r?.[role]
+  const showMykad=role==='student'||role==='lecturer'
+  $('pe-mykad-wrap').style.display=showMykad?'block':'none'
+  if(showMykad) $('pe-mykad').value=roleData?.mykadNumber||''
+  if(r?.profile){
+    const p=r.profile
+    $('pe-phone').value=p.phoneNumber||''
+    $('pe-gender').value=p.gender||''
+    $('pe-race').value=p.race||''
+    $('pe-dob').value=p.dateOfBirth?p.dateOfBirth.split('T')[0]:''
+    $('pe-addr1').value=p.address?.streetOne||''
+    $('pe-addr2').value=p.address?.streetTwo||''
+    $('pe-postcode').value=p.address?.postcode||''
+    $('pe-city').value=p.address?.city||''
+    $('pe-state').value=p.state||''
+  }
+  openModal('modal-profile-edit')
+}
+
+async function saveProfile(){
+  const role=currentUser?.student?'student':currentUser?.lecturer?'lecturer':null
+  const mykadVal=$('pe-mykad').value.trim().replace(/\D/g,'')
+  if(role){
+    if(mykadVal.length!==12){
+      toast('MyKad (IC) number is required — enter 12 digits', 'error')
+      return
+    }
+  }
+  const promises=[
+    api('/auth/me',{method:'PATCH',body:{name:$('pe-name').value}}),
+    api('/auth/me/profile',{method:'PATCH',body:{
+      phoneNumber:$('pe-phone').value||undefined,
+      gender:$('pe-gender').value||undefined,
+      race:$('pe-race').value||undefined,
+      dateOfBirth:$('pe-dob').value||undefined,
+      streetOne:$('pe-addr1').value||undefined,
+      streetTwo:$('pe-addr2').value||undefined,
+      postcode:$('pe-postcode').value||undefined,
+      city:$('pe-city').value||undefined,
+      state:$('pe-state').value||undefined,
+    }})
+  ]
+  if(role){
+    const path=role==='student'?'/me/student':'/me/lecturer'
+    promises.push(api(path,{method:'PATCH',body:{mykadNumber:mykadVal}}))
+  }
+  const results=await Promise.all(promises)
+  const rName=results[0]
+  const rProfile=results[1]
+  const rRole=results[2]
+  if(!rName?.ok||!rProfile?.ok){ toast(apiErrMsg(rName?.ok?rProfile:rName, 'Could not save profile'), 'error'); return }
+  if(role&&rRole&&!rRole.ok){ toast(apiErrMsg(rRole, 'Could not save MyKad'), 'error'); return }
+  currentUser=rName.data.data
+  $('sidebar-name').textContent=currentUser.name
+  toast('Profile updated','success')
+  closeModal('modal-profile-edit')
+  loadProfile()
+}
+
+async function uploadProfilePicture(inputEl){
+  const file=inputEl.files?.[0]
+  if(!file){ inputEl.value=''; return }
+  const fd=new FormData()
+  fd.append('category','PROFILE_PICTURE')
+  fd.append('file',file)
+  const r=await api('/me/documents',{method:'POST',body:fd})
+  inputEl.value=''
+  if(!r?.ok){ toast(apiErrMsg(r,'Upload failed'),'error'); return }
+  cachedProfilePictureUrl=r.data?.data?.fileUrl||null
+  updateSidebarAvatar()
+  toast('Profile picture updated','success')
+  loadProfile()
+}
+
+// ─── DOCUMENTS ──────────────────────────────────────────────
+async function loadMyDocuments(){
+  $('doc-list').innerHTML=`<div class="loading"><div class="spinner"></div></div>`
+  const r=await api('/me/documents')
+  if(!r?.ok){
+    const msg=apiErrMsg(r,'Failed to load documents')
+    if(r?.status===404) $('doc-list').innerHTML=`<div class="empty"><div class="empty-icon">⚠️</div><h4>Profile required</h4><p>${msg}</p></div>`
+    else toast(msg,'error')
+    return
+  }
+  const docs=r.data.data||[]
+  if(!docs.length){
+    $('doc-list').innerHTML=`<div class="empty"><div class="empty-icon">📄</div><h4>No documents yet</h4><p>Upload your first document</p></div>`
+    return
+  }
+  const icons={PROFILE_PICTURE:'🖼️',IC:'🪪',TRANSCRIPT:'📋',DOCUMENT:'📄',OTHER:'📎'}
+  $('doc-list').innerHTML=docs.map(d=>`
+    <div class="doc-item">
+      <div class="doc-icon">${icons[d.category]||'📎'}</div>
+      <div class="doc-info">
+        <strong>${d.originalName}</strong>
+        <span>${d.category} · ${fmtSize(Number(d.fileSize))} · ${fmt(d.createdAt)}</span>
+      </div>
+      <a href="${d.fileUrl}" target="_blank" class="btn btn-ghost btn-sm">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        Open
+      </a>
+    </div>`).join('')
+}
+
+function openUploadModal(){
+  $('upload-file-input').value=''
+  $('upload-preview').innerHTML=`<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom:8px"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg><div style="font-size:13px;font-weight:600">Click to choose file</div><div style="font-size:11px;margin-top:4px">PDF, JPG, PNG — max 10MB</div>`
+  openModal('modal-upload')
+}
+
+function previewFile(input){
+  if(!input.files[0]) return
+  const f=input.files[0]
+  $('upload-preview').innerHTML=`<div style="font-size:13px;font-weight:600">📎 ${f.name}</div><div style="font-size:11px;color:var(--success);margin-top:4px">${fmtSize(f.size)}</div>`
+}
+
+async function uploadDocument(){
+  const file=$('upload-file-input').files[0]
+  if(!file){ toast('Please select a file','error'); return }
+  const category=$('upload-cat').value
+  const btn=$('upload-btn'); btn.disabled=true; btn.textContent='Uploading…'
+  const fd=new FormData(); fd.append('category',category); fd.append('file',file)
+  const r=await api('/me/documents',{method:'POST',body:fd})
+  btn.disabled=false; btn.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>Upload`
+  if(!r?.ok){ toast(apiErrMsg(r, 'Upload failed'), 'error'); return }
+  toast('Document uploaded','success')
+  closeModal('modal-upload'); loadMyDocuments()
+}
+
+// ─── PAGINATION ─────────────────────────────────────────────
+function renderPagination(containerId, meta, currentPage, onPage){
+  if(!meta||meta.totalPages<=1){ $(containerId).innerHTML=''; return }
+  const info=`<span class="pagination-info">Showing ${((currentPage-1)*meta.limit)+1}–${Math.min(currentPage*meta.limit,meta.total)} of ${meta.total}</span>`
+  let btns=''
+  btns+=`<button class="page-btn" ${!meta.hasPrev?'disabled':''} onclick="(${onPage.toString()})(${currentPage-1})">‹</button>`
+  for(let i=1;i<=meta.totalPages;i++){
+    if(meta.totalPages>7&&i>2&&i<meta.totalPages-1&&Math.abs(i-currentPage)>1){ if(i===3||i===meta.totalPages-2) btns+=`<span class="page-btn" style="cursor:default">…</span>`; continue }
+    btns+=`<button class="page-btn ${i===currentPage?'active':''}" onclick="(${onPage.toString()})(${i})">${i}</button>`
+  }
+  btns+=`<button class="page-btn" ${!meta.hasNext?'disabled':''} onclick="(${onPage.toString()})(${currentPage+1})">›</button>`
+  $(containerId).innerHTML=`${info}<div class="pagination-btns">${btns}</div>`
+}
+
+// ─── MODAL HELPERS ──────────────────────────────────────────
+function openModal(id){ $(id).classList.add('open') }
+function closeModal(id){ $(id).classList.remove('open') }
+document.addEventListener('click', e=>{ if(e.target.classList.contains('modal-overlay')) e.target.classList.remove('open') })
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') document.querySelectorAll('.modal-overlay.open').forEach(m=>m.classList.remove('open')) })
+
+// ─── FORM ERRORS ────────────────────────────────────────────
+function showFormErrors(elId, data){
+  const el=$(elId); if(!el) return
+  if(data?.errors?.length){
+    el.innerHTML=data.errors.map(e=>`<p>• ${e.field ? `<strong>${e.field}:</strong> ` : ''}${e.message}</p>`).join('')
+  } else {
+    el.innerHTML=`<p>• ${data?.message||'An error occurred'}</p>`
+  }
+  el.style.display='block'
+}
+
+// ─── HEALTH CHECK ────────────────────────────────────────────
+let healthInterval = null
+async function checkHealth(){
+  try{
+    const r=await fetch(API_BASE+'/health')
+    const ok=r.ok
+    const dot=$('api-dot'); if(dot) dot.className=`api-dot${ok?'':' offline'}`
+  }catch{
+    const dot=$('api-dot'); if(dot) dot.className='api-dot offline'
+  }
+}
+function startHealthCheck(){
+  checkHealth()
+  if(healthInterval) clearInterval(healthInterval)
+  healthInterval=setInterval(checkHealth,120000) // every 2 min when logged in
+}
+function stopHealthCheck(){
+  if(healthInterval){ clearInterval(healthInterval); healthInterval=null }
+}
+
+// On load: restore session from refresh cookie, or show reset form if ?token=...
+;(function initAuthView() {
+  const params = new URLSearchParams(window.location.search)
+  if (params.get('token')) {
+    showResetForm()
+    return
+  }
+  restoreSession()
+})()
+</script>
+</body>
+</html>
