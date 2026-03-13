@@ -2,7 +2,12 @@ import type { Request, Response } from 'express'
 import { response } from '../utils/response.js'
 import { buildPagination } from '../utils/pagination.js'
 import * as coursesService from '../services/courses.service.js'
-import type { PaginationQuery } from '../validations/paginationSchema.js'
+import type { PaginationQuery } from '../validations/shared/paginationSchema.js'
+
+export const getCoursesForSelect = async (_req: Request, res: Response): Promise<void> => {
+  const items = await coursesService.getForSelect()
+  response(res, 200, 'Courses retrieved successfully', items)
+}
 
 export const getAllCourses = async (req: Request, res: Response): Promise<void> => {
   const { page, limit } = req.validated.query as PaginationQuery

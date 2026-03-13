@@ -2,7 +2,7 @@ import { Router } from 'express'
 import * as lecturersController from '../controllers/lecturers.controller.js'
 import { validateZod } from '../middleware/validateZod.middleware.js'
 import { authenticate, authorize, requireVerifiedEmail } from '../middleware/auth.middleware.js'
-import { paginationSchema } from '../validations/paginationSchema.js'
+import { paginationSchema } from '../validations/shared/paginationSchema.js'
 import { lecturerParamsSchema, createLecturerSchema, updateLecturerSchema } from '../validations/lecturerValidation.js'
 
 const router = Router()

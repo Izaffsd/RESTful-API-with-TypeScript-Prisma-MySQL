@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express'
 import { response } from '../utils/response.js'
 import prisma from '../config/db.js'
+import { supabaseAdmin } from '../config/supabase.js'
 
 export const getEnums = async (_req: Request, res: Response): Promise<void> => {
   response(res, 200, 'Enums retrieved successfully', {
@@ -39,7 +40,6 @@ export const getStats = async (_req: Request, res: Response): Promise<void> => {
     where: { deletedAt: null },
     select: {
       userId: true,
-      name: true,
       type: true,
       createdAt: true,
       student: { select: { documents: { where: { deletedAt: null, category: 'PROFILE_PICTURE' }, orderBy: { createdAt: 'desc' }, take: 1, select: { fileUrl: true } } } },
@@ -50,13 +50,18 @@ export const getStats = async (_req: Request, res: Response): Promise<void> => {
     take: 5,
   })
 
-  const recentRegistrations = recentUsers.map((u) => ({
-    userId: u.userId,
-    name: u.name,
-    type: u.type,
-    createdAt: u.createdAt,
-    profilePictureUrl: u.student?.documents?.[0]?.fileUrl ?? u.lecturer?.documents?.[0]?.fileUrl ?? u.headLecturer?.documents?.[0]?.fileUrl ?? null,
-  }))
+  const recentRegistrations = await Promise.all(
+    recentUsers.map(async (u) => {
+      const { data: { user: authUser } } = await supabaseAdmin.auth.admin.getUserById(u.userId)
+      return {
+        userId: u.userId,
+        type: u.type,
+        name: (authUser?.user_metadata?.name as string) ?? null,
+        createdAt: u.createdAt,
+        profilePictureUrl: u.student?.documents?.[0]?.fileUrl ?? u.lecturer?.documents?.[0]?.fileUrl ?? u.headLecturer?.documents?.[0]?.fileUrl ?? null,
+      }
+    }),
+  )
 
   response(res, 200, 'Stats retrieved successfully', {
     totalStudents,

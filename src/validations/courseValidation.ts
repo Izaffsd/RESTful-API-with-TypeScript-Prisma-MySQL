@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { entityIdSchema } from './idValidation.js'
+import { entityIdSchema } from './shared/id.validation.js'
 
 export const courseParamsSchema = z.object({
   courseId: entityIdSchema('Invalid course ID format'),

@@ -1,6 +1,6 @@
 import { z } from 'zod'
-import { entityIdSchema } from './idValidation.js'
-import { mykadOptionalSchema, mykadOptionalNullableSchema } from './mykadValidation.js'
+import { entityIdSchema } from './shared/id.validation.js'
+import { mykadOptionalSchema, mykadOptionalNullableSchema } from './shared/mykad.validation.js'
 
 export const studentParamsSchema = z.object({
   studentId: entityIdSchema('Invalid student ID format'),

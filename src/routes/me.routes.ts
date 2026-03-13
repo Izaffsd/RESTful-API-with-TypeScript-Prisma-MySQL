@@ -2,11 +2,11 @@ import { Router } from 'express'
 import * as meController from '../controllers/me.controller.js'
 import { validateZod } from '../middleware/validateZod.middleware.js'
 import { authenticate, authorize, requireVerifiedEmail } from '../middleware/auth.middleware.js'
-import { paginationSchema } from '../validations/paginationSchema.js'
+import { paginationSchema } from '../validations/shared/paginationSchema.js'
 import { uploadDocument } from '../config/multer.js'
 import { uploadCategorySchema } from '../validations/documentValidation.js'
 import { z } from 'zod'
-import { mykadSchema } from '../validations/mykadValidation.js'
+import { mykadSchema } from '../validations/shared/mykad.validation.js'
 
 const mykadUpdateSchema = z.object({
   mykadNumber: mykadSchema,

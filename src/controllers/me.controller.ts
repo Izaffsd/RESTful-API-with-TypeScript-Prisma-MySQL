@@ -4,7 +4,8 @@ import { buildPagination } from '../utils/pagination.js'
 import prisma from '../config/db.js'
 import { AppError } from '../utils/AppError.js'
 import * as documentsService from '../services/documents.service.js'
-import type { PaginationQuery } from '../validations/paginationSchema.js'
+import { enrichWithAuthUsers } from '../utils/enrichAuthUser.js'
+import type { PaginationQuery } from '../validations/shared/paginationSchema.js'
 
 const getEntityRecord = async (userId: string, type: string) => {
   if (type === 'STUDENT') {
@@ -55,7 +56,10 @@ export const getMyCourse = async (req: Request, res: Response): Promise<void> =>
     where: { userId: req.user!.userId },
     include: { course: true },
   })
-  if (!student) throw new AppError('Student record not found', 404, 'STUDENT_NOT_FOUND_404')
+  if (!student) {
+    response(res, 200, 'No course assigned', null)
+    return
+  }
   response(res, 200, 'Course retrieved successfully', student.course)
 }
 
@@ -101,26 +105,30 @@ export const getMyStudents = async (req: Request, res: Response): Promise<void> 
   const [items, total] = await Promise.all([
     prisma.student.findMany({
       where,
-      include: { user: { select: { userId: true, name: true, email: true, status: true } } },
+      include: { user: { include: { profile: true } }, course: { select: { courseId: true, courseCode: true, courseName: true } } },
       skip,
       take: limit,
     }),
     prisma.student.count({ where }),
   ])
+  const enriched = await enrichWithAuthUsers(items)
   const { meta, links } = buildPagination(req, page, limit, total)
-  response(res, 200, 'Students retrieved successfully', items, null, [], meta, links)
+  response(res, 200, 'Students retrieved successfully', enriched, null, [], meta, links)
 }
 
 const entityNotFoundMessage = (type: string) =>
   type === 'STUDENT'
-    ? 'No student profile linked to your account. Register with a student number to use documents, or contact an administrator.'
+    ? 'Add your student number and course in the profile page to upload documents.'
     : type === 'LECTURER'
       ? 'No lecturer profile linked to your account. Contact an administrator.'
       : 'No head lecturer profile linked to your account. Contact an administrator.'
 
 export const getMyDocuments = async (req: Request, res: Response): Promise<void> => {
   const entity = await getEntityRecord(req.user!.userId, req.user!.type)
-  if (!entity) throw new AppError(entityNotFoundMessage(req.user!.type), 404, 'RECORD_NOT_FOUND_404')
+  if (!entity) {
+    response(res, 200, 'Documents retrieved successfully', [])
+    return
+  }
 
   const docs = await documentsService.getDocumentsByEntity(entity.entityId, req.user!.type)
   response(res, 200, 'Documents retrieved successfully', docs.map(documentsService.serializeDocument))

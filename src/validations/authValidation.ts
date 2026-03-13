@@ -13,7 +13,7 @@ export const registerSchema = z.object({
   email: z.string().trim().toLowerCase().email('Invalid email format'),
   password,
   confirmPassword: z.string(),
-  studentNumber: z.string().trim().toUpperCase().min(1, 'Student number is required'),
+  studentNumber: z.string().trim().toUpperCase().optional(),
 }).refine((d) => d.password === d.confirmPassword, {
   message: 'Passwords do not match',
   path: ['confirmPassword'],
@@ -24,25 +24,12 @@ export const loginSchema = z.object({
   password: z.string().min(1, 'Password is required'),
 })
 
-export const verifyEmailQuerySchema = z.object({
-  token: z.string().min(1, 'Token is required'),
-})
-
 export const resendVerificationSchema = z.object({
   email: z.string().trim().toLowerCase().email('Invalid email format'),
 })
 
 export const forgotPasswordSchema = z.object({
   email: z.string().trim().toLowerCase().email('Invalid email format'),
-})
-
-export const resetPasswordSchema = z.object({
-  token: z.string().min(1, 'Token is required'),
-  password,
-  confirmPassword: z.string(),
-}).refine((d) => d.password === d.confirmPassword, {
-  message: 'Passwords do not match',
-  path: ['confirmPassword'],
 })
 
 export const updateMeSchema = z.object({

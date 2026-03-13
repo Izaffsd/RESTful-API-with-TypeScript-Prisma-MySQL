@@ -2,7 +2,7 @@ import express from 'express'
 import path from 'node:path'
 import cors from 'cors'
 import helmet from 'helmet'
-import morgan from 'morgan'
+import { pinoHttp } from 'pino-http'
 import cookieParser from 'cookie-parser'
 import routes from './routes/index.js'
 import { errorHandler } from './middleware/errorHandler.middleware.js'
@@ -10,6 +10,7 @@ import { requestId } from './middleware/requestId.middleware.js'
 import { apiLimiter } from './middleware/rateLimit.middleware.js'
 import { response } from './utils/response.js'
 import { env } from './config/env.js'
+import logger from './utils/logger.js'
 
 const app = express()
 
@@ -19,7 +20,7 @@ const corsOrigins = env.FRONTEND_URL
 
 app.use(requestId)
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }))
-app.use(morgan(env.NODE_ENV === 'production' ? 'combined' : 'dev'))
+app.use(pinoHttp({ logger }))
 app.use(cors({
   origin: corsOrigins.length > 0 ? corsOrigins : true,
   credentials: true,
@@ -30,7 +31,7 @@ app.use(apiLimiter)
 
 app.use('/uploads', express.static(path.resolve('uploads')))
 
-app.use('/api', routes)
+app.use('/api/v1', routes)
 
 app.use(express.static('public'))
 

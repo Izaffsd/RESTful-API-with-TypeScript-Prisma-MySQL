@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from 'express'
 import { AppError } from '../utils/AppError.js'
-import * as tokenService from '../services/token.service.js'
+import { supabase } from '../config/supabase.js'
+import prisma from '../config/db.js'
 import type { UserType } from '@prisma/client'
 
 export const authenticate = async (req: Request, _res: Response, next: NextFunction) => {
@@ -11,18 +12,43 @@ export const authenticate = async (req: Request, _res: Response, next: NextFunct
 
   const token = header.slice(7)
 
-  const blacklisted = await tokenService.isTokenBlacklisted(token)
-  if (blacklisted) {
+  const { data: { user: authUser }, error } = await supabase.auth.getUser(token)
+  if (error || !authUser) {
     throw new AppError('Unauthorized', 401, 'UNAUTHORIZED_401')
   }
 
-  try {
-    const payload = tokenService.verifyAccessToken(token)
-    req.user = payload
-    next()
-  } catch {
+  let dbUser = await prisma.user.findUnique({
+    where: { userId: authUser.id },
+    select: { type: true, status: true, deletedAt: true },
+  })
+
+  if (!dbUser) {
+    dbUser = await prisma.user.upsert({
+      where: { userId: authUser.id },
+      create: { userId: authUser.id, type: 'STUDENT', status: 'ACTIVE' },
+      update: {},
+      select: { type: true, status: true, deletedAt: true },
+    })
+  }
+
+  if (dbUser.deletedAt) {
     throw new AppError('Unauthorized', 401, 'UNAUTHORIZED_401')
   }
+
+  if (dbUser.status !== 'ACTIVE') {
+    throw new AppError('Account is not active', 403, 'ACCOUNT_INACTIVE_403')
+  }
+
+  const name = (authUser.user_metadata?.name as string) ?? null
+  req.user = {
+    userId: authUser.id,
+    email: authUser.email ?? '',
+    name,
+    type: dbUser.type as UserType,
+    status: dbUser.status,
+    isEmailVerified: !!authUser.email_confirmed_at,
+  }
+  next()
 }
 
 export const authorize = (...roles: UserType[]) => {

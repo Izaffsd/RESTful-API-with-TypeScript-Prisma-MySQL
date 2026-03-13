@@ -22,17 +22,21 @@ export const errorHandler = (err: Error, req: Request, res: Response, _next: Nex
   const message = isAppError ? err.message : 'Internal Server Error'
   const errors = isAppError && err.details ? err.details : []
 
+  const logPayload = {
+    message,
+    errorCode,
+    statusCode,
+    stack: err.stack,
+    method: req.method,
+    path: req.originalUrl,
+    ip: req.ip,
+    userAgent: req.get('user-agent'),
+  }
+
   if (statusCode >= 500) {
-    logger.error({
-      message,
-      errorCode,
-      statusCode,
-      stack: err.stack,
-      method: req.method,
-      path: req.originalUrl,
-      ip: req.ip,
-      userAgent: req.get('user-agent'),
-    })
+    logger.error(logPayload)
+  } else {
+    logger.warn(logPayload)
   }
 
   response(res, statusCode, message, null, errorCode, errors)

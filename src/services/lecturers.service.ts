@@ -1,10 +1,10 @@
-import bcrypt from 'bcrypt'
 import prisma from '../config/db.js'
+import { supabaseAdmin } from '../config/supabase.js'
 import { AppError } from '../utils/AppError.js'
 import { handlePrismaError } from '../utils/prismaErrors.js'
 
 const lecturerInclude = {
-  user: { select: { userId: true, name: true, email: true, status: true } },
+  user: { select: { userId: true, status: true } },
   course: { select: { courseId: true, courseCode: true, courseName: true } },
 } as const
 
@@ -47,30 +47,39 @@ export const create = async (data: {
   const course = await prisma.course.findUnique({ where: { courseCode: data.courseCode } })
   if (!course) throw new AppError('Course not found', 404, 'COURSE_NOT_FOUND_404')
 
-  const passwordHash = await bcrypt.hash(data.password, 12)
+  const { data: authData, error } = await supabaseAdmin.auth.admin.createUser({
+    email: data.email,
+    password: data.password,
+    email_confirm: true,
+    user_metadata: { name: data.name },
+  })
+
+  if (error) {
+    if (error.message?.toLowerCase().includes('already') || error.message?.toLowerCase().includes('registered')) {
+      throw new AppError('Email already registered', 409, 'DUPLICATE_EMAIL_409')
+    }
+    throw new AppError(error.message ?? 'Failed to create lecturer', 400, 'CREATE_FAILED_400')
+  }
+
+  if (!authData.user) {
+    throw new AppError('Failed to create lecturer', 400, 'CREATE_FAILED_400')
+  }
 
   try {
-    return await prisma.$transaction(async (tx) => {
-      const user = await tx.user.create({
-        data: {
-          email: data.email,
-          passwordHash,
-          name: data.name,
-          type: 'LECTURER',
-          isEmailVerified: true,
-          emailVerifiedAt: new Date(),
-        },
-      })
-      return await tx.lecturer.create({
-        data: {
-          staffNumber: data.staffNumber,
-          mykadNumber: data.mykadNumber ?? null,
-          courseId: course.courseId,
-          userId: user.userId,
-        },
-        include: lecturerInclude,
-      })
+    const lecturer = await prisma.lecturer.create({
+      data: {
+        staffNumber: data.staffNumber,
+        mykadNumber: data.mykadNumber ?? null,
+        courseId: course.courseId,
+        userId: authData.user.id,
+      },
+      include: lecturerInclude,
     })
+    await prisma.user.update({
+      where: { userId: authData.user.id },
+      data: { type: 'LECTURER' },
+    })
+    return lecturer
   } catch (err) {
     return handlePrismaError(err, 'Lecturer')
   }
@@ -93,7 +102,8 @@ export const update = async (lecturerId: string, data: {
 
   try {
     if (data.name) {
-      await prisma.user.update({ where: { userId: lecturer.user.userId }, data: { name: data.name } })
+      const { error } = await supabaseAdmin.auth.admin.updateUserById(lecturer.user.userId, { user_metadata: { name: data.name } })
+      if (error) throw error
     }
     return await prisma.lecturer.update({ where: { lecturerId }, data: updateData, include: lecturerInclude })
   } catch (err) {

@@ -2,6 +2,14 @@ import prisma from '../config/db.js'
 import { AppError } from '../utils/AppError.js'
 import { handlePrismaError } from '../utils/prismaErrors.js'
 
+export const getForSelect = async () => {
+  return prisma.course.findMany({
+    where: { isActive: true },
+    orderBy: { courseCode: 'asc' },
+    select: { courseId: true, courseCode: true, courseName: true },
+  })
+}
+
 export const getAll = async (page: number, limit: number) => {
   const skip = (page - 1) * limit
   const [items, total] = await Promise.all([
@@ -30,7 +38,7 @@ export const getById = async (courseId: string) => {
     include: {
       _count: { select: { students: true, lecturers: true } },
       lecturers: {
-        include: { user: { select: { userId: true, name: true, email: true } } },
+        include: { user: { select: { userId: true, status: true } } },
       },
     },
   })
@@ -44,8 +52,7 @@ export const getById = async (courseId: string) => {
     lecturers: course.lecturers.map((l) => ({
       lecturerId: l.lecturerId,
       staffNumber: l.staffNumber,
-      name: l.user.name,
-      email: l.user.email,
+      userId: l.user.userId,
     })),
   }
 }

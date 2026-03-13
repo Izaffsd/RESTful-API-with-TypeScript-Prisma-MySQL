@@ -17,7 +17,8 @@ const router = Router()
 router.get('/', (_req, res) => {
   res.status(200).json({
     message: 'SUCCESS - Welcome to Monash API',
-    version: '1.0.0',
+    version: '1.0.1',
+    apiVersion: 'v1',
     timestamp: new Date().toISOString(),
   })
 })

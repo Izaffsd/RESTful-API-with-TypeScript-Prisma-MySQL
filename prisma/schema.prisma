@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
 }
 
 // ==================== ENUMS ====================
@@ -68,109 +68,89 @@ enum EntityType {
 // ==================== MODELS ====================
 
 model User {
-  userId              String     @id @default(uuid()) @map("user_id")
-  email               String     @unique @db.VarChar(255)
-  passwordHash        String     @map("password_hash") @db.VarChar(255)
-  name                String     @db.VarChar(100)
-  type                UserType   @default(STUDENT)
-  status              UserStatus @default(ACTIVE)
+  userId    String     @id @map("user_id") @db.Uuid
+  type      UserType   @default(STUDENT)
+  status    UserStatus @default(ACTIVE)
+  deletedAt DateTime?  @map("deleted_at")
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
 
-  isEmailVerified     Boolean    @default(false) @map("is_email_verified")
-  emailVerifiedAt     DateTime?  @map("email_verified_at")
-  emailVerifyToken    String?    @unique @map("email_verify_token") @db.VarChar(255)
-  emailVerifyExpiry   DateTime?  @map("email_verify_expiry")
-
-  passwordResetToken  String?    @unique @map("password_reset_token") @db.VarChar(255)
-  passwordResetExpiry DateTime?  @map("password_reset_expiry")
-
-  refreshToken        String?    @unique @map("refresh_token") @db.VarChar(500)
-  refreshTokenExpiry  DateTime?  @map("refresh_token_expiry")
-
-  failedLoginAttempts Int        @default(0) @map("failed_login_attempts")
-  lockedUntil         DateTime?  @map("locked_until")
-  lastLoginAt         DateTime?  @map("last_login_at")
-
-  deletedAt           DateTime?  @map("deleted_at")
-
-  createdAt           DateTime   @default(now()) @map("created_at")
-  updatedAt           DateTime   @updatedAt @map("updated_at")
-
-  profile             Profile?
-  student             Student?
-  lecturer            Lecturer?
-  headLecturer        HeadLecturer?
+  profile      Profile?
+  student      Student?
+  lecturer     Lecturer?
+  headLecturer HeadLecturer?
 
   @@map("users")
 }
 
 model Profile {
-  profileId         String    @id @default(uuid()) @map("profile_id")
-  userId            String    @unique @map("user_id")
-  phoneNumber       String?   @map("phone_number") @db.VarChar(15)
-  gender            Gender?
-  race              Race?
-  dateOfBirth       DateTime? @map("date_of_birth")
-  streetOne         String?   @map("street_one") @db.VarChar(255)
-  streetTwo         String?   @map("street_two") @db.VarChar(255)
-  postcode          String?   @db.VarChar(5)
-  city              String?   @db.VarChar(100)
-  state             State?
-  createdAt         DateTime  @default(now()) @map("created_at")
-  updatedAt         DateTime  @updatedAt @map("updated_at")
+  profileId   String    @id @default(uuid()) @map("profile_id") @db.Uuid
+  userId      String    @unique @map("user_id") @db.Uuid
+  phoneNumber String?   @map("phone_number") @db.VarChar(15)
+  gender      Gender?
+  race        Race?
+  dateOfBirth DateTime? @map("date_of_birth")
+  streetOne   String?   @map("street_one") @db.VarChar(255)
+  streetTwo   String?   @map("street_two") @db.VarChar(255)
+  postcode    String?   @db.VarChar(5)
+  city        String?   @db.VarChar(100)
+  state       State?
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
 
-  user              User      @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [userId], onDelete: Cascade)
 
   @@map("profiles")
 }
 
 model Student {
-  studentId     String     @id @default(uuid()) @map("student_id")
-  studentNumber String     @unique @map("student_number") @db.VarChar(10)
+  studentId     String     @id @default(uuid()) @map("student_id") @db.Uuid
+  studentNumber String?    @unique @map("student_number") @db.VarChar(10)
   mykadNumber   String?    @unique @map("mykad_number") @db.VarChar(12)
-  courseId       String     @map("course_id")
-  userId        String     @unique @map("user_id")
+  courseId      String?    @map("course_id") @db.Uuid
+  userId        String     @unique @map("user_id") @db.Uuid
   createdAt     DateTime   @default(now()) @map("created_at")
   updatedAt     DateTime   @updatedAt @map("updated_at")
 
-  user          User       @relation(fields: [userId], references: [userId], onDelete: Cascade)
-  course        Course     @relation(fields: [courseId], references: [courseId])
-  documents     Document[]
+  user     User       @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  course   Course?    @relation(fields: [courseId], references: [courseId])
+  documents Document[]
 
   @@map("students")
 }
 
 model Lecturer {
-  lecturerId  String     @id @default(uuid()) @map("lecturer_id")
-  staffNumber String     @unique @map("staff_number") @db.VarChar(10)
+  lecturerId  String     @id @default(uuid()) @map("lecturer_id") @db.Uuid
+  staffNumber String?    @unique @map("staff_number") @db.VarChar(10)
   mykadNumber String?    @unique @map("mykad_number") @db.VarChar(12)
-  courseId     String     @map("course_id")
-  userId      String     @unique @map("user_id")
+  courseId    String     @map("course_id") @db.Uuid
+  userId      String     @unique @map("user_id") @db.Uuid
   createdAt   DateTime   @default(now()) @map("created_at")
   updatedAt   DateTime   @updatedAt @map("updated_at")
 
-  user        User       @relation(fields: [userId], references: [userId], onDelete: Cascade)
-  course      Course     @relation(fields: [courseId], references: [courseId])
-  documents   Document[]
+  user       User       @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  course     Course     @relation(fields: [courseId], references: [courseId])
+  documents  Document[]
 
   @@map("lecturers")
 }
 
 model HeadLecturer {
-  headLecturerId String     @id @default(uuid()) @map("head_lecturer_id")
+  headLecturerId String     @id @default(uuid()) @map("head_lecturer_id") @db.Uuid
   staffNumber    String     @unique @map("staff_number") @db.VarChar(10)
   mykadNumber    String?    @unique @map("mykad_number") @db.VarChar(12)
-  userId         String     @unique @map("user_id")
+  userId         String     @unique @map("user_id") @db.Uuid
   createdAt      DateTime   @default(now()) @map("created_at")
   updatedAt      DateTime   @updatedAt @map("updated_at")
 
-  user           User       @relation(fields: [userId], references: [userId], onDelete: Cascade)
-  documents      Document[]
+  user      User       @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  documents Document[]
 
   @@map("head_lecturers")
 }
 
 model Course {
-  courseId     String     @id @default(uuid()) @map("course_id")
+  courseId     String     @id @default(uuid()) @map("course_id") @db.Uuid
   courseCode   String     @unique @map("course_code") @db.VarChar(10)
   courseName   String     @map("course_name") @db.VarChar(100)
   description  String?    @db.Text
@@ -178,15 +158,15 @@ model Course {
   createdAt    DateTime   @default(now()) @map("created_at")
   updatedAt    DateTime   @updatedAt @map("updated_at")
 
-  students     Student[]
-  lecturers    Lecturer[]
+  students  Student[]
+  lecturers Lecturer[]
 
   @@map("courses")
 }
 
 model Document {
-  documentId     String        @id @default(uuid()) @map("document_id")
-  entityId       String        @map("entity_id") @db.VarChar(191)
+  documentId     String        @id @default(uuid()) @map("document_id") @db.Uuid
+  entityId       String        @map("entity_id") @db.Uuid
   entityType     EntityType    @map("entity_type")
   fileName       String        @map("file_name") @db.VarChar(255)
   originalName   String        @map("original_name") @db.VarChar(255)
@@ -195,26 +175,17 @@ model Document {
   filePath       String        @map("file_path") @db.VarChar(500)
   fileUrl        String        @map("file_url") @db.VarChar(500)
   category       FileCategory
-  studentId      String?       @map("student_id")
-  lecturerId     String?       @map("lecturer_id")
-  headLecturerId String?       @map("head_lecturer_id")
+  studentId      String?       @map("student_id") @db.Uuid
+  lecturerId     String?       @map("lecturer_id") @db.Uuid
+  headLecturerId String?       @map("head_lecturer_id") @db.Uuid
   createdAt      DateTime      @default(now()) @map("created_at")
   updatedAt      DateTime      @updatedAt @map("updated_at")
   deletedAt      DateTime?     @map("deleted_at")
 
-  student        Student?      @relation(fields: [studentId], references: [studentId])
-  lecturer       Lecturer?     @relation(fields: [lecturerId], references: [lecturerId])
-  headLecturer   HeadLecturer? @relation(fields: [headLecturerId], references: [headLecturerId])
+  student        Student?        @relation(fields: [studentId], references: [studentId])
+  lecturer       Lecturer?       @relation(fields: [lecturerId], references: [lecturerId])
+  headLecturer   HeadLecturer?   @relation(fields: [headLecturerId], references: [headLecturerId])
 
   @@index([entityId, entityType])
   @@map("documents")
-}
-
-model TokenBlacklist {
-  id        String   @id @default(uuid())
-  token     String   @unique @db.VarChar(500)
-  expiresAt DateTime @map("expires_at")
-  createdAt DateTime @default(now()) @map("created_at")
-
-  @@map("token_blacklist")
 }
