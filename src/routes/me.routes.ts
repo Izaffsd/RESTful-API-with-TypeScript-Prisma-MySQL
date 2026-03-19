@@ -3,7 +3,7 @@ import * as meController from '../controllers/me.controller.js'
 import { validateZod } from '../middleware/validateZod.middleware.js'
 import { authenticate, authorize, requireVerifiedEmail } from '../middleware/auth.middleware.js'
 import { paginationSchema } from '../validations/shared/paginationSchema.js'
-import { uploadDocument } from '../config/multer.js'
+import { uploadDocument, validateFileType } from '../config/multer.js'
 import { uploadCategorySchema } from '../validations/documentValidation.js'
 import { z } from 'zod'
 import { mykadSchema } from '../validations/shared/mykad.validation.js'
@@ -25,6 +25,6 @@ router.patch('/lecturer', authorize('LECTURER'), validateZod(mykadUpdateSchema, 
 router.get('/students', authorize('LECTURER'), validateZod(paginationSchema, 'query'), meController.getMyStudents)
 
 router.get('/documents', meController.getMyDocuments)
-router.post('/documents', uploadDocument.single('file'), validateZod(uploadCategorySchema, 'body'), meController.uploadMyDocument)
+router.post('/documents', uploadDocument.single('file'), validateFileType, validateZod(uploadCategorySchema, 'body'), meController.uploadMyDocument)
 
 export default router

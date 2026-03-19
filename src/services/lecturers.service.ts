@@ -66,6 +66,12 @@ export const create = async (data: {
   }
 
   try {
+    await prisma.user.upsert({
+      where: { userId: authData.user.id },
+      create: { userId: authData.user.id, type: 'LECTURER', status: 'ACTIVE', name: data.name },
+      update: { type: 'LECTURER', name: data.name },
+    })
+
     const lecturer = await prisma.lecturer.create({
       data: {
         staffNumber: data.staffNumber,
@@ -74,10 +80,6 @@ export const create = async (data: {
         userId: authData.user.id,
       },
       include: lecturerInclude,
-    })
-    await prisma.user.update({
-      where: { userId: authData.user.id },
-      data: { type: 'LECTURER' },
     })
     return lecturer
   } catch (err) {
@@ -102,8 +104,10 @@ export const update = async (lecturerId: string, data: {
 
   try {
     if (data.name) {
-      const { error } = await supabaseAdmin.auth.admin.updateUserById(lecturer.user.userId, { user_metadata: { name: data.name } })
-      if (error) throw error
+      await prisma.user.update({
+        where: { userId: lecturer.user.userId },
+        data: { name: data.name },
+      })
     }
     return await prisma.lecturer.update({ where: { lecturerId }, data: updateData, include: lecturerInclude })
   } catch (err) {

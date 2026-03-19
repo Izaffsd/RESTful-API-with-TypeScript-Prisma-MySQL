@@ -87,6 +87,13 @@ export const create = async (data: {
   }
 
   try {
+    // Ensure the prisma `users` row exists (foreign key for `students.userId`).
+    await prisma.user.upsert({
+      where: { userId: authData.user.id },
+      create: { userId: authData.user.id, type: 'STUDENT', status: 'ACTIVE', name: data.name },
+      update: { type: 'STUDENT', name: data.name },
+    })
+
     return await prisma.student.create({
       data: {
         studentNumber: data.studentNumber,
@@ -118,8 +125,10 @@ export const update = async (studentId: string, data: {
 
   try {
     if (data.name) {
-      const { error } = await supabaseAdmin.auth.admin.updateUserById(student.user.userId, { user_metadata: { name: data.name } })
-      if (error) throw error
+      await prisma.user.update({
+        where: { userId: student.user.userId },
+        data: { name: data.name },
+      })
     }
     return await prisma.student.update({
       where: { studentId },

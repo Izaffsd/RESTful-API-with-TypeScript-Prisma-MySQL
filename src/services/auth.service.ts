@@ -101,6 +101,24 @@ export const register = async (data: {
     throw new AppError('Registration failed', 400, 'REGISTRATION_FAILED_400')
   }
 
+  // Supabase may return an obfuscated "success" response for existing users
+  // (e.g. anti-enumeration mode), with an empty identities array.
+  // Treat this as duplicate email so UI shows the correct feedback.
+  if (Array.isArray(authData.user.identities) && authData.user.identities.length === 0) {
+    throw new AppError('Email already registered', 409, 'DUPLICATE_EMAIL_409')
+  }
+
+  // IMPORTANT:
+  // Your `login()` requires a row in `public.users` (`prisma.user`) by `userId`.
+  // OAuth sign-in typically creates/ensures that row via `authenticate` middleware,
+  // but manual sign-up must do it here as well, otherwise login throws
+  // INVALID_CREDENTIALS_401 at the `if (!dbUser || dbUser.deletedAt)` check.
+  await prisma.user.upsert({
+    where: { userId: authData.user.id },
+    create: { userId: authData.user.id, type: 'STUDENT', status: 'ACTIVE', name: data.name },
+    update: { name: data.name },
+  })
+
   if (data.studentNumber) {
     const prefix = data.studentNumber.match(/^([A-Z]{2,4})/)?.[1]
     if (!prefix) {
@@ -129,6 +147,19 @@ export const login = async (data: { email: string; password: string }) => {
   })
 
   if (error) {
+    const msg = (error.message ?? '').toLowerCase()
+    // Supabase often uses the same "invalid login" shape when the user hasn't confirmed email.
+    // Map those cases to a more accurate error for the frontend.
+    const looksLikeEmailNotConfirmed =
+      msg.includes('confirm') ||
+      msg.includes('confirmation') ||
+      msg.includes('not confirmed') ||
+      msg.includes('email') && msg.includes('confirm')
+
+    if (looksLikeEmailNotConfirmed) {
+      throw new AppError('Please verify your email first', 403, 'EMAIL_NOT_VERIFIED_403')
+    }
+
     throw new AppError('Invalid email or password', 401, 'INVALID_CREDENTIALS_401')
   }
 
@@ -153,10 +184,22 @@ export const login = async (data: { email: string; password: string }) => {
     throw new AppError('Please verify your email first', 403, 'EMAIL_NOT_VERIFIED_403')
   }
 
+  const nameFromAuth = (sessionData.user.user_metadata?.name as string) ?? null
+  let displayName = dbUser.name ?? null
+  // Backfill name for existing rows where `name` wasn't persisted yet.
+  if (!displayName && nameFromAuth) {
+    await prisma.user.update({
+      where: { userId: dbUser.userId },
+      data: { name: nameFromAuth },
+    })
+    displayName = nameFromAuth
+  }
+
   const authUser: AuthUser = {
     userId: dbUser.userId,
     email: sessionData.user.email ?? '',
-    name: (sessionData.user.user_metadata?.name as string) ?? null,
+    // Prisma is the source of truth for display name.
+    name: displayName,
     type: dbUser.type,
     status: dbUser.status,
     isEmailVerified: !!sessionData.user.email_confirmed_at,
@@ -201,7 +244,12 @@ export const logout = async (_userId: string, accessToken: string) => {
 export const resendVerification = async (email: string) => {
   const { error } = await supabase.auth.resend({ type: 'signup', email })
   if (error) {
-    // Don't reveal if email exists; Supabase may not have this user
+    // Don't reveal if email exists; Supabase may not have this user.
+    // But log provider-side errors so we can troubleshoot delivery/config issues.
+    logger.warn(
+      { email, supabaseError: error.message, status: error.status, code: error.code },
+      'Supabase resend verification failed',
+    )
     return
   }
 }
@@ -211,6 +259,16 @@ export const forgotPassword = async (email: string) => {
     redirectTo: `${env.FRONTEND_URL}/reset-password`,
   })
   if (error) {
+    logger.warn(
+      {
+        email,
+        redirectTo: `${env.FRONTEND_URL}/reset-password`,
+        supabaseError: error.message,
+        status: error.status,
+        code: error.code,
+      },
+      'Supabase forgot password failed',
+    )
     return
   }
 }
@@ -224,7 +282,17 @@ export const getMe = async (userId: string) => {
 
   const { data: { user: authUser } } = await supabaseAdmin.auth.admin.getUserById(userId)
   const email = authUser?.email ?? ''
-  const name = (authUser?.user_metadata?.name as string) ?? null
+  // Prisma is the source of truth for display name.
+  const nameFromAuth = (authUser?.user_metadata?.name as string) ?? null
+  let name = dbUser.name ?? null
+  // Backfill for existing rows where `name` wasn't persisted yet.
+  if (!name && nameFromAuth) {
+    await prisma.user.update({
+      where: { userId },
+      data: { name: nameFromAuth },
+    })
+    name = nameFromAuth
+  }
   const isEmailVerified = !!authUser?.email_confirmed_at
 
   const authUserFormatted: AuthUser = {
@@ -247,12 +315,11 @@ export const getMe = async (userId: string) => {
 }
 
 export const updateMe = async (userId: string, data: { name: string }) => {
-  const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
-    user_metadata: { name: data.name },
+  // Update only Prisma. Supabase metadata may be overwritten by OAuth provider.
+  await prisma.user.update({
+    where: { userId },
+    data: { name: data.name },
   })
-  if (error) {
-    throw new AppError(error.message ?? 'Update failed', 400, 'UPDATE_FAILED_400')
-  }
   return getMe(userId)
 }
 
@@ -283,9 +350,19 @@ export const updateProfile = async (userId: string, userType: UserType, data: {
       }
       const parsed = mykadSchema.safeParse(digits)
       if (!parsed.success) {
-        const msg = parsed.error.errors[0]?.message ?? 'Invalid MyKad number format (YYMMDDxxxxxx)'
+        const msg = parsed.error.issues[0]?.message ?? 'Invalid MyKad number format (YYMMDDxxxxxx)'
         throw new AppError(msg, 400, 'INVALID_MYKAD_400', [{ field: 'mykadNumber', message: msg }])
       }
+    }
+  }
+
+  // If MyKad is being set/changed, ensure uniqueness before any write that could violate a DB unique constraint.
+  if (userType === 'STUDENT' && mykadNumber) {
+    const existing = await prisma.student.findFirst({
+      where: { mykadNumber, userId: { not: userId } },
+    })
+    if (existing) {
+      throw new AppError('MyKad number already registered to another student', 409, 'DUPLICATE_MYKAD_409')
     }
   }
   const profileData = {
@@ -319,7 +396,7 @@ export const updateProfile = async (userId: string, userType: UserType, data: {
         throw new AppError('Student number already registered', 409, 'DUPLICATE_STUDENT_NUMBER_409')
       }
       await prisma.student.create({
-        data: { studentNumber, courseId: course.courseId, userId, mykadNumber: mykadNumber ?? null },
+        data: { studentNumber, courseId: course.courseId, userId },
       })
     } else {
       const existing = await prisma.student.findUnique({ where: { studentNumber } })
@@ -331,7 +408,6 @@ export const updateProfile = async (userId: string, userType: UserType, data: {
         data: {
           studentNumber,
           courseId: course.courseId,
-          ...(mykadNumber !== undefined && { mykadNumber: mykadNumber ?? null }),
         },
       })
     }

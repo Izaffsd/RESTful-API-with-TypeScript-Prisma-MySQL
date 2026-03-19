@@ -17,17 +17,19 @@ export const authenticate = async (req: Request, _res: Response, next: NextFunct
     throw new AppError('Unauthorized', 401, 'UNAUTHORIZED_401')
   }
 
+  const nameFromAuth = (authUser.user_metadata?.name as string) ?? null
+
   let dbUser = await prisma.user.findUnique({
     where: { userId: authUser.id },
-    select: { type: true, status: true, deletedAt: true },
+    select: { type: true, status: true, deletedAt: true, name: true },
   })
 
   if (!dbUser) {
     dbUser = await prisma.user.upsert({
       where: { userId: authUser.id },
-      create: { userId: authUser.id, type: 'STUDENT', status: 'ACTIVE' },
+      create: { userId: authUser.id, type: 'STUDENT', status: 'ACTIVE', name: nameFromAuth },
       update: {},
-      select: { type: true, status: true, deletedAt: true },
+      select: { type: true, status: true, deletedAt: true, name: true },
     })
   }
 
@@ -39,7 +41,15 @@ export const authenticate = async (req: Request, _res: Response, next: NextFunct
     throw new AppError('Account is not active', 403, 'ACCOUNT_INACTIVE_403')
   }
 
-  const name = (authUser.user_metadata?.name as string) ?? null
+  // Prisma is the source of truth for display name.
+  if (!dbUser.name && nameFromAuth) {
+    await prisma.user.update({
+      where: { userId: authUser.id },
+      data: { name: nameFromAuth },
+    })
+  }
+
+  const name = dbUser.name ?? nameFromAuth ?? null
   req.user = {
     userId: authUser.id,
     email: authUser.email ?? '',

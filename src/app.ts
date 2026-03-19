@@ -20,7 +20,16 @@ const corsOrigins = env.FRONTEND_URL
 
 app.use(requestId)
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }))
-app.use(pinoHttp({ logger }))
+app.use(pinoHttp({
+  logger,
+  // Reduce log spam: only log when it's an error (>= 400) or an exception.
+  // Normal 2xx/3xx requests will be silent.
+  customLogLevel(_req, res, err) {
+    if (err) return 'warn'
+    if (res.statusCode >= 400) return 'warn'
+    return 'silent'
+  },
+}))
 app.use(cors({
   origin: corsOrigins.length > 0 ? corsOrigins : true,
   credentials: true,

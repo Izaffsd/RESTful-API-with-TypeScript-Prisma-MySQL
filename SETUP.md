@@ -1,6 +1,6 @@
 # Monash API – Installation, init & setup (Prisma 7)
 
-Use these commands in order. Run everything from the project root: `c:\Users\iskandar.i\Desktop\ts-prisma`.
+Use these commands in order. Run everything from the project root: `c:\Users\iskandar.i\Desktop\fullstack\api-ts-prisma`.
 
 ---
 
@@ -22,15 +22,23 @@ Create a `.env` file (copy from example):
 cp .env.example .env
 ```
 
-Then edit `.env` and set your MySQL URL:
+Then edit `.env` and set your Postgres (Supabase) URLs:
 
 ```env
 PORT=4000
 NODE_ENV=development
-DATABASE_URL="mysql://USER:PASSWORD@localhost:3306/monash"
+DATABASE_URL="postgresql://USER:PASSWORD@HOST:6543/postgres?pgbouncer=true"
+DIRECT_URL="postgresql://USER:PASSWORD@HOST:5432/postgres"
 ```
 
-Replace `USER`, `PASSWORD`, and `monash` with your MySQL user, password, and database name.
+Replace `USER`, `PASSWORD`, and `HOST` with your Supabase connection values.
+
+Then also set:
+
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_KEY`
+- (optional) `FRONTEND_URL` (comma-separated) for CORS
 
 ---
 
@@ -137,7 +145,7 @@ npm start
 
 ## One-time full setup (copy-paste)
 
-From project root, with MySQL running and database `monash` created (or let Prisma create it):
+From project root (after `.env` is configured):
 
 ```bash
 npm install
@@ -160,3 +168,15 @@ npm run dev
 ```
 
 You’re using **Prisma 7** (`@prisma/client` and `prisma` ^7.4.1) for all of the above.
+
+---
+
+## (Optional) Seed demo data
+
+This repo includes a SQL seed at `prisma/seed/seed.sql`.
+
+Run it via Prisma:
+
+```bash
+npm run db:seed
+```

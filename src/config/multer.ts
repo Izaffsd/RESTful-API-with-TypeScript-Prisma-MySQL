@@ -1,55 +1,73 @@
+/**
+ * File upload config: profile pictures and documents.
+ * Saves to uploads/profiles/ or uploads/documents/ (client sends `category`: PROFILE_PICTURE or else).
+ *
+ * Flow: Multer saves file → validateFileType reads bytes and checks magic numbers → reject + delete if wrong.
+ */
+
+import type { Request, Response, NextFunction } from 'express'
 import multer from 'multer'
 import path from 'node:path'
 import fs from 'node:fs'
 import crypto from 'node:crypto'
+import { fileTypeFromFile } from 'file-type'
 import { AppError } from '../utils/AppError.js'
 
 const UPLOAD_DIR = path.resolve('uploads')
+const ALLOWED = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'] as const
+const MAX_SIZE = 10 * 1024 * 1024 // 10 MB
 
-const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const
-const ALLOWED_DOCUMENT_TYPES = [...ALLOWED_IMAGE_TYPES, 'application/pdf'] as const
-
-function getDateSubdir() {
-  const now = new Date()
-  const y = now.getFullYear()
-  const m = String(now.getMonth() + 1).padStart(2, '0')
-  const d = String(now.getDate()).padStart(2, '0')
-  return path.join(String(y), m, d)
-}
-
-/** Upload dir: uploads/profiles/YYYY/MM/DD or uploads/documents/YYYY/MM/DD based on category (body must be parsed before file; client should send category first). */
-function getUploadDir(req: Express.Request) {
-  const category = (req as Express.Request & { body?: { category?: string } }).body?.category
-  const subfolder = category === 'PROFILE_PICTURE' ? 'profiles' : 'documents'
-  const dir = path.join(UPLOAD_DIR, subfolder, getDateSubdir())
-  fs.mkdirSync(dir, { recursive: true })
-  return dir
-}
-
-const generateFilename = (_req: Express.Request, file: Express.Multer.File, cb: (err: Error | null, filename: string) => void) => {
-  const ext = path.extname(file.originalname).toLowerCase()
-  cb(null, `${crypto.randomUUID()}${ext}`)
-}
-
-const storage = multer.diskStorage({
+const diskStorage = multer.diskStorage({
   destination(req, _file, cb) {
-    const dir = getUploadDir(req)
+    const category = (req as Request & { body?: { category?: string } }).body?.category
+    const dir = path.join(UPLOAD_DIR, category === 'PROFILE_PICTURE' ? 'profiles' : 'documents')
+    fs.mkdirSync(dir, { recursive: true })
     cb(null, dir)
   },
-  filename: generateFilename,
+  filename(_req, file, cb) {
+    const ext = path.extname(file.originalname).toLowerCase()
+    cb(null, `${crypto.randomUUID()}${ext}`)
+  },
 })
 
 export const uploadDocument = multer({
-  storage,
+  storage: diskStorage,
+  limits: { fileSize: MAX_SIZE },
   fileFilter(_req, file, cb) {
-    if (!(ALLOWED_DOCUMENT_TYPES as readonly string[]).includes(file.mimetype)) {
-      return cb(new AppError('Only JPEG, PNG, WebP images and PDF files are allowed', 400, 'INVALID_FILE_TYPE_400'))
+    if (!(ALLOWED as readonly string[]).includes(file.mimetype)) {
+      return cb(new AppError('Only JPEG, PNG, WebP and PDF allowed', 400, 'INVALID_FILE_TYPE_400'))
     }
     cb(null, true)
   },
-  limits: { fileSize: 10 * 1024 * 1024 },
 })
 
-export const toRelativePath = (absolutePath: string): string => {
+/**
+ * Run after uploadDocument.single('file'). Reads the saved file's bytes and checks magic numbers.
+ * If the real type is not allowed, deletes the file and throws.
+ */
+export function validateFileType(req: Request, _res: Response, next: NextFunction): void {
+  if (!req.file) {
+    return next()
+  }
+  const filePath = req.file.path
+  fileTypeFromFile(filePath)
+    .then((detected) => {
+      const allowed = ALLOWED as readonly string[]
+      if (!detected || !allowed.includes(detected.mime)) {
+        try {
+          fs.unlinkSync(filePath)
+        } catch {
+          /* ignore unlink error */
+        }
+        return next(
+          new AppError('File content does not match allowed type (JPEG, PNG, WebP or PDF)', 400, 'INVALID_FILE_TYPE_400')
+        )
+      }
+      next()
+    })
+    .catch(next)
+}
+
+export function toRelativePath(absolutePath: string): string {
   return path.relative(path.resolve(), absolutePath).replace(/\\/g, '/')
 }

@@ -10,14 +10,6 @@ declare global {
         params?: unknown
         query?: unknown
       }
-      user?: {
-        userId: string
-        email: string
-        name: string
-        type: 'STUDENT' | 'LECTURER' | 'HEAD_LECTURER'
-        status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED'
-        isEmailVerified: boolean
-      }
     }
   }
 }
