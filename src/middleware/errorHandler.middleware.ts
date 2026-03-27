@@ -3,6 +3,7 @@ import multer from 'multer'
 import { AppError } from '../utils/AppError.js'
 import { response } from '../utils/response.js'
 import logger from '../utils/logger.js'
+import { requestLogFields } from '../utils/requestLogFields.js'
 
 export const errorHandler = (err: Error, req: Request, res: Response, _next: NextFunction): void => {
   if (err instanceof multer.MulterError) {
@@ -23,6 +24,8 @@ export const errorHandler = (err: Error, req: Request, res: Response, _next: Nex
   const errors = isAppError && err.details ? err.details : []
 
   const logPayload = {
+    type: 'api_error_response' as const,
+    severity: 'error' as const,
     message,
     errorCode,
     statusCode,
@@ -31,13 +34,14 @@ export const errorHandler = (err: Error, req: Request, res: Response, _next: Nex
     path: req.originalUrl,
     ip: req.ip,
     userAgent: req.get('user-agent'),
+    ...requestLogFields(req),
   }
 
+  // 4xx: response() already logs message, success, errorCode, statusCode to error.log.
   if (statusCode >= 500) {
     logger.error(logPayload)
-  } else {
-    logger.warn(logPayload)
   }
 
-  response(res, statusCode, message, null, errorCode, errors)
+  const errorPayload = isAppError && err.data !== undefined && err.data !== null ? err.data : null
+  response(res, statusCode, message, errorPayload, errorCode, errors)
 }

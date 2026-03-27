@@ -12,6 +12,8 @@ export type TokenPayload = {
 declare global {
   namespace Express {
     interface Request {
+      /** Set by requestId.middleware; reused by pino-http for log correlation */
+      id?: string
       user?: TokenPayload
     }
   }

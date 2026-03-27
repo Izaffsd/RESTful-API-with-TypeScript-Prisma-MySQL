@@ -10,7 +10,7 @@ export const getAllLecturers = async (req: Request, res: Response): Promise<void
   const { page, limit } = req.validated.query as PaginationQuery
   const { items, total } = await lecturersService.getAll(page, limit)
   const enriched = await enrichWithAuthUsers(items)
-  const serialized = enriched.map(serializeWithDocuments)
+  const serialized = await Promise.all(enriched.map((item) => serializeWithDocuments(item)))
   const { meta, links } = buildPagination(req, page, limit, total)
   response(res, 200, 'Lecturers retrieved successfully', serialized, null, [], meta, links)
 }
@@ -19,7 +19,7 @@ export const getLecturerById = async (req: Request, res: Response): Promise<void
   const { lecturerId } = req.validated.params as { lecturerId: string }
   const lecturer = await lecturersService.getById(lecturerId)
   const enriched = await enrichWithAuthUser(lecturer)
-  response(res, 200, 'Lecturer retrieved successfully', serializeWithDocuments(enriched))
+  response(res, 200, 'Lecturer retrieved successfully', await serializeWithDocuments(enriched))
 }
 
 export const createLecturer = async (req: Request, res: Response): Promise<void> => {

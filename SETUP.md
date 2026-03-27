@@ -1,5 +1,7 @@
 # Monash API – Installation, init & setup (Prisma 7)
 
+**Backend release version** is SemVer in `package.json` → `version` (e.g. `1.0.0`). The same value is returned as JSON `version` from `GET /api/v1/` and `GET /api/v1/health`.
+
 Use these commands in order. Run everything from the project root: `c:\Users\iskandar.i\Desktop\fullstack\api-ts-prisma`.
 
 ---

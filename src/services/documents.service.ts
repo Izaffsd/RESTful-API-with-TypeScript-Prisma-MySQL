@@ -1,26 +1,55 @@
-import type { Request } from 'express'
+import type { Document, EntityType, FileCategory } from '@prisma/client'
 import prisma from '../config/db.js'
+import { supabaseAdmin } from '../config/supabase.js'
 import { AppError } from '../utils/AppError.js'
-import { toRelativePath } from '../config/multer.js'
-import type { EntityType, FileCategory } from '@prisma/client'
-import fs from 'node:fs/promises'
-import path from 'node:path'
+import { uploadToStorage, deleteFromStorage } from '../utils/storage.js'
+import logger from '../utils/logger.js'
+import { getCachedSignedUrl } from '../redis/signedUrlCache.js'
 
-/** Serialize document for JSON (BigInt fileSize is not JSON-safe) */
-export const serializeDocument = (doc: { fileSize?: bigint; [k: string]: unknown }) =>
-  doc ? { ...doc, fileSize: doc.fileSize != null ? Number(doc.fileSize) : doc.fileSize } : doc
+const SIGNED_URL_TTL_SEC = 3600
 
-/** Serialize any entity that may include a `documents` array with BigInt fileSize values */
-export const serializeWithDocuments = <T extends { documents?: unknown[] }>(item: T): T =>
-  item.documents
-    ? { ...item, documents: item.documents.map((d) => serializeDocument(d as { fileSize?: bigint; [k: string]: unknown })) }
-    : item
+/** BigInt fileSize → number for JSON */
+function plainFileSize(doc: { fileSize?: bigint; [k: string]: unknown }) {
+  return doc.fileSize != null ? Number(doc.fileSize) : doc.fileSize
+}
 
-const buildFileUrl = (req: Request, relativePath: string) =>
-  `${req.protocol}://${req.get('host')}/${relativePath}`
+/** Resolves `fileUrl`: profile public URL, or signed URL for private `documents` bucket. */
+export async function serializeDocument(doc: Document): Promise<Record<string, unknown>> {
+  const base: Record<string, unknown> = { ...doc, fileSize: plainFileSize(doc) }
+
+  if (doc.category === 'PROFILE_PICTURE') {
+    return { ...base, fileUrl: doc.fileUrl }
+  }
+
+  const signedUrl = await getCachedSignedUrl('documents', doc.filePath, SIGNED_URL_TTL_SEC, async () => {
+    const { data, error } = await supabaseAdmin.storage
+      .from('documents')
+      .createSignedUrl(doc.filePath, SIGNED_URL_TTL_SEC)
+    if (error || !data?.signedUrl) {
+      logger.warn({ err: error?.message, path: doc.filePath }, 'createSignedUrl failed')
+      return null
+    }
+    return data.signedUrl
+  })
+
+  if (signedUrl) {
+    return { ...base, fileUrl: signedUrl }
+  }
+
+  return { ...base, fileUrl: '' }
+}
+
+export async function serializeWithDocuments<T extends { documents?: unknown[] }>(item: T): Promise<T> {
+  if (!item.documents?.length) {
+    return item
+  }
+  const docs = await Promise.all(
+    item.documents.map((d) => serializeDocument(d as Document)),
+  )
+  return { ...item, documents: docs }
+}
 
 export const createDocument = async (
-  req: Request,
   file: Express.Multer.File,
   opts: {
     entityId: string
@@ -30,20 +59,44 @@ export const createDocument = async (
     relationId: string
   },
 ) => {
-  const relativePath = toRelativePath(file.path)
-  const fileUrl = buildFileUrl(req, relativePath)
+  const buf = file.buffer
+  if (!buf || !Buffer.isBuffer(buf)) {
+    throw new AppError('Invalid upload', 400, 'NO_FILE_400')
+  }
+  const buffer = buf
+
+  const category = opts.category as FileCategory
+
+  if (category === 'PROFILE_PICTURE') {
+    const existing = await prisma.document.findMany({
+      where: {
+        entityId: opts.entityId,
+        entityType: opts.entityType as EntityType,
+        category: 'PROFILE_PICTURE',
+        deletedAt: null,
+      },
+    })
+    for (const d of existing) {
+      await removeStoredFile(d)
+      await softDeleteDocument(d.documentId)
+    }
+  }
+
+  const { path: storagePath, publicUrl, mimeType } = await uploadToStorage(buffer, category)
+  const fileName = storagePath.split('/').pop() ?? storagePath
+  const fileUrl = publicUrl ?? ''
 
   return prisma.document.create({
     data: {
       entityId: opts.entityId,
       entityType: opts.entityType as EntityType,
-      fileName: file.filename,
+      fileName,
       originalName: file.originalname,
-      mimeType: file.mimetype,
-      fileSize: BigInt(file.size),
-      filePath: relativePath,
+      mimeType,
+      fileSize: BigInt(buffer.length),
+      filePath: storagePath,
       fileUrl,
-      category: opts.category as FileCategory,
+      category,
       [opts.relationField]: opts.relationId,
     },
   })
@@ -71,10 +124,7 @@ export const softDeleteDocument = async (documentId: string) => {
   })
 }
 
-export const deleteFileFromDisk = async (filePath: string) => {
-  try {
-    await fs.unlink(path.resolve(filePath))
-  } catch {
-    // file already removed
-  }
+/** Remove file from Supabase storage (object keys may look like `uploads/...` inside the documents bucket). */
+export async function removeStoredFile(doc: Pick<Document, 'filePath' | 'category'>): Promise<void> {
+  await deleteFromStorage(doc.filePath, doc.category)
 }

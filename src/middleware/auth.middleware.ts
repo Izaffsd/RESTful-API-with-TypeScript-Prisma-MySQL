@@ -3,6 +3,7 @@ import { AppError } from '../utils/AppError.js'
 import { supabase } from '../config/supabase.js'
 import prisma from '../config/db.js'
 import type { UserType } from '@prisma/client'
+import { isAccessTokenBlacklisted } from '../redis/accessTokenBlacklist.js'
 
 export const authenticate = async (req: Request, _res: Response, next: NextFunction) => {
   const header = req.headers.authorization
@@ -11,6 +12,10 @@ export const authenticate = async (req: Request, _res: Response, next: NextFunct
   }
 
   const token = header.slice(7)
+
+  if (await isAccessTokenBlacklisted(token)) {
+    throw new AppError('Unauthorized', 401, 'UNAUTHORIZED_401')
+  }
 
   const { data: { user: authUser }, error } = await supabase.auth.getUser(token)
   if (error || !authUser) {

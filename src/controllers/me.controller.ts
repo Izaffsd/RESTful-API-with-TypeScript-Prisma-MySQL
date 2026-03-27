@@ -131,7 +131,8 @@ export const getMyDocuments = async (req: Request, res: Response): Promise<void>
   }
 
   const docs = await documentsService.getDocumentsByEntity(entity.entityId, req.user!.type)
-  response(res, 200, 'Documents retrieved successfully', docs.map(documentsService.serializeDocument))
+  const serialized = await Promise.all(docs.map((d) => documentsService.serializeDocument(d)))
+  response(res, 200, 'Documents retrieved successfully', serialized)
 }
 
 export const uploadMyDocument = async (req: Request, res: Response): Promise<void> => {
@@ -142,7 +143,7 @@ export const uploadMyDocument = async (req: Request, res: Response): Promise<voi
 
   const { category } = req.validated.body as { category: string }
 
-  const doc = await documentsService.createDocument(req, req.file, {
+  const doc = await documentsService.createDocument(req.file, {
     entityId: entity.entityId,
     entityType: req.user!.type,
     category,
@@ -150,5 +151,22 @@ export const uploadMyDocument = async (req: Request, res: Response): Promise<voi
     relationId: entity.entityId,
   })
 
-  response(res, 201, 'Document uploaded successfully', documentsService.serializeDocument(doc))
+  response(res, 201, 'Document uploaded successfully', await documentsService.serializeDocument(doc))
+}
+
+export const deleteMyDocument = async (req: Request, res: Response): Promise<void> => {
+  const { documentId } = req.validated.params as { documentId: string }
+  const entity = await getEntityRecord(req.user!.userId, req.user!.type)
+  if (!entity) {
+    throw new AppError(entityNotFoundMessage(req.user!.type), 404, 'RECORD_NOT_FOUND_404')
+  }
+
+  const doc = await documentsService.getDocumentById(documentId)
+  if (doc.entityId !== entity.entityId || doc.entityType !== req.user!.type) {
+    throw new AppError('Document not found', 404, 'DOCUMENT_NOT_FOUND_404')
+  }
+
+  await documentsService.removeStoredFile(doc)
+  await documentsService.softDeleteDocument(documentId)
+  res.status(204).end()
 }

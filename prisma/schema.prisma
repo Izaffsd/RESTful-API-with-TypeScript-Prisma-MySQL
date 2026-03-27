@@ -73,6 +73,13 @@ model User {
   status    UserStatus @default(ACTIVE)
   name      String?    @map("name") @db.VarChar(200)
   deletedAt DateTime?  @map("deleted_at")
+  /// Set when the account is created via POST /auth/register (email + password). Used to block
+  /// “Sign in with Google” on the login page until Profile → Connect Google (`profileGoogleLinkedAt`).
+  passwordSignupAt       DateTime? @map("password_signup_at")
+  /// Set when Google is linked from Profile (oauthFlow=link). Allows Google sign-in from login after that.
+  profileGoogleLinkedAt DateTime? @map("profile_google_linked_at")
+  /// Updated when the user changes or sets a password via the API (security + optional UX).
+  lastPasswordChangeAt  DateTime? @map("last_password_change_at")
   createdAt DateTime   @default(now()) @map("created_at")
   updatedAt DateTime   @updatedAt @map("updated_at")
 

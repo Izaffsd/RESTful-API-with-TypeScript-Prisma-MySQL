@@ -13,20 +13,21 @@ export const uploadStudentDocument = async (req: Request, res: Response): Promis
   const file = requireFile(req)
   const { category } = req.validated.body as { category: string }
 
-  const doc = await documentsService.createDocument(req, file, {
+  const doc = await documentsService.createDocument(file, {
     entityId: studentId,
     entityType: 'STUDENT',
     category,
     relationField: 'studentId',
     relationId: studentId,
   })
-  response(res, 201, 'Document uploaded successfully', documentsService.serializeDocument(doc))
+  response(res, 201, 'Document uploaded successfully', await documentsService.serializeDocument(doc))
 }
 
 export const getStudentDocuments = async (req: Request, res: Response): Promise<void> => {
   const { studentId } = req.validated.params as { studentId: string }
   const docs = await documentsService.getDocumentsByEntity(studentId, 'STUDENT')
-  response(res, 200, 'Documents retrieved successfully', docs.map(documentsService.serializeDocument))
+  const serialized = await Promise.all(docs.map((d) => documentsService.serializeDocument(d)))
+  response(res, 200, 'Documents retrieved successfully', serialized)
 }
 
 export const uploadLecturerDocument = async (req: Request, res: Response): Promise<void> => {
@@ -34,20 +35,21 @@ export const uploadLecturerDocument = async (req: Request, res: Response): Promi
   const file = requireFile(req)
   const { category } = req.validated.body as { category: string }
 
-  const doc = await documentsService.createDocument(req, file, {
+  const doc = await documentsService.createDocument(file, {
     entityId: lecturerId,
     entityType: 'LECTURER',
     category,
     relationField: 'lecturerId',
     relationId: lecturerId,
   })
-  response(res, 201, 'Document uploaded successfully', documentsService.serializeDocument(doc))
+  response(res, 201, 'Document uploaded successfully', await documentsService.serializeDocument(doc))
 }
 
 export const getLecturerDocuments = async (req: Request, res: Response): Promise<void> => {
   const { lecturerId } = req.validated.params as { lecturerId: string }
   const docs = await documentsService.getDocumentsByEntity(lecturerId, 'LECTURER')
-  response(res, 200, 'Documents retrieved successfully', docs.map(documentsService.serializeDocument))
+  const serialized = await Promise.all(docs.map((d) => documentsService.serializeDocument(d)))
+  response(res, 200, 'Documents retrieved successfully', serialized)
 }
 
 export const uploadHeadLecturerDocument = async (req: Request, res: Response): Promise<void> => {
@@ -55,26 +57,27 @@ export const uploadHeadLecturerDocument = async (req: Request, res: Response): P
   const file = requireFile(req)
   const { category } = req.validated.body as { category: string }
 
-  const doc = await documentsService.createDocument(req, file, {
+  const doc = await documentsService.createDocument(file, {
     entityId: headLecturerId,
     entityType: 'HEAD_LECTURER',
     category,
     relationField: 'headLecturerId',
     relationId: headLecturerId,
   })
-  response(res, 201, 'Document uploaded successfully', documentsService.serializeDocument(doc))
+  response(res, 201, 'Document uploaded successfully', await documentsService.serializeDocument(doc))
 }
 
 export const getHeadLecturerDocuments = async (req: Request, res: Response): Promise<void> => {
   const { headLecturerId } = req.validated.params as { headLecturerId: string }
   const docs = await documentsService.getDocumentsByEntity(headLecturerId, 'HEAD_LECTURER')
-  response(res, 200, 'Documents retrieved successfully', docs.map(documentsService.serializeDocument))
+  const serialized = await Promise.all(docs.map((d) => documentsService.serializeDocument(d)))
+  response(res, 200, 'Documents retrieved successfully', serialized)
 }
 
 export const deleteDocument = async (req: Request, res: Response): Promise<void> => {
   const { documentId } = req.validated.params as { documentId: string }
   const doc = await documentsService.getDocumentById(documentId)
-  await documentsService.deleteFileFromDisk(doc.filePath)
+  await documentsService.removeStoredFile(doc)
   await documentsService.softDeleteDocument(documentId)
   res.status(204).end()
 }

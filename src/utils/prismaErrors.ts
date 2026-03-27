@@ -2,11 +2,10 @@ import { Prisma } from '@prisma/client'
 import { AppError } from './AppError.js'
 
 export const handlePrismaError = (err: unknown, context: string): never => {
-  // handlePrismaError(err, 'Student')  - always throws, never reaches end of function
   if (!(err instanceof Prisma.PrismaClientKnownRequestError)) throw err
-// NOT a Prisma error, throw it back up and let something else deal with it
+  const prismaErr = err as InstanceType<typeof Prisma.PrismaClientKnownRequestError>
 
-  switch (err.code) {
+  switch (prismaErr.code) {
     case 'P2002':
       throw new AppError(`${context} already exists`, 409, `DUPLICATE_${context.toUpperCase()}_409`)
     case 'P2003':

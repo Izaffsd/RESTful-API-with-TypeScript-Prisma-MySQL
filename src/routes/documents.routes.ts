@@ -2,7 +2,7 @@ import { Router } from 'express'
 import * as documentsController from '../controllers/documents.controller.js'
 import { validateZod } from '../middleware/validateZod.middleware.js'
 import { authenticate, authorize, requireVerifiedEmail } from '../middleware/auth.middleware.js'
-import { uploadDocument, validateFileType } from '../config/multer.js'
+import { upload } from '../config/upload.js'
 import {
   documentIdParamsSchema, studentDocParamsSchema,
   lecturerDocParamsSchema, headLecturerDocParamsSchema, uploadCategorySchema,
@@ -16,8 +16,7 @@ router.post(
   '/students/:studentId/documents',
   authorize('HEAD_LECTURER'),
   validateZod(studentDocParamsSchema, 'params'),
-  uploadDocument.single('file'),
-  validateFileType,
+  upload.single('file'),
   validateZod(uploadCategorySchema, 'body'),
   documentsController.uploadStudentDocument,
 )
@@ -32,8 +31,7 @@ router.post(
   '/lecturers/:lecturerId/documents',
   authorize('LECTURER', 'HEAD_LECTURER'),
   validateZod(lecturerDocParamsSchema, 'params'),
-  uploadDocument.single('file'),
-  validateFileType,
+  upload.single('file'),
   validateZod(uploadCategorySchema, 'body'),
   documentsController.uploadLecturerDocument,
 )
@@ -48,8 +46,7 @@ router.post(
   '/head-lecturers/:headLecturerId/documents',
   authorize('HEAD_LECTURER'),
   validateZod(headLecturerDocParamsSchema, 'params'),
-  uploadDocument.single('file'),
-  validateFileType,
+  upload.single('file'),
   validateZod(uploadCategorySchema, 'body'),
   documentsController.uploadHeadLecturerDocument,
 )

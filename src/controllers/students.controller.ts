@@ -13,7 +13,9 @@ export const getAllStudents = async (req: Request, res: Response): Promise<void>
   const { page, limit, ...filters } = req.validated.query as StudentQuery
   const { items, total } = await studentsService.getAll(page, limit, filters)
   const enriched = await enrichWithAuthUsers(items)
-  const serialized = enriched.map((item) => serializeWithDocuments(item as { documents?: unknown[] }))
+  const serialized = await Promise.all(
+    enriched.map((item) => serializeWithDocuments(item as { documents?: unknown[] })),
+  )
   const { meta, links } = buildPagination(req, page, limit, total)
   response(res, 200, 'Students retrieved successfully', serialized, null, [], meta, links)
 }
@@ -22,7 +24,7 @@ export const getStudentById = async (req: Request, res: Response): Promise<void>
   const { studentId } = req.validated.params as { studentId: string }
   const student = await studentsService.getById(studentId)
   const enriched = await enrichWithAuthUser(student)
-  response(res, 200, 'Student retrieved successfully', serializeWithDocuments(enriched))
+  response(res, 200, 'Student retrieved successfully', await serializeWithDocuments(enriched))
 }
 
 export const createStudent = async (req: Request, res: Response): Promise<void> => {
