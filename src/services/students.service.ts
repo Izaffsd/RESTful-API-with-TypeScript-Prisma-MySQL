@@ -8,14 +8,22 @@ const studentInclude = {
   course: { select: { courseId: true, courseCode: true, courseName: true } },
 } as const
 
-export const getAll = async (page: number, limit: number, filters: {
-  search?: string
-  gender?: string
-  courseCode?: string
-  sortBy?: string
-  order?: 'asc' | 'desc'
-}) => {
+export const getAll = async (
+  page: number,
+  limit: number,
+  filters: {
+    search?: string
+    gender?: string
+    courseCode?: string
+    sortBy?: string
+    order?: 'asc' | 'desc'
+  },
+  options?: { restrictToCourseId?: string },
+) => {
   const where: Record<string, unknown> = { user: { deletedAt: null } }
+  if (options?.restrictToCourseId) {
+    where.courseId = options.restrictToCourseId
+  }
   if (filters.search) {
     where.OR = [
       { studentNumber: { contains: filters.search, mode: 'insensitive' } },

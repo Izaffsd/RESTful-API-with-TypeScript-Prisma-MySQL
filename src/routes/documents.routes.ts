@@ -8,7 +8,7 @@ import {
   lecturerDocParamsSchema, headLecturerDocParamsSchema, uploadCategorySchema,
 } from '../validations/documentValidation.js'
 
-const router = Router()
+const router: Router = Router()
 
 router.use(authenticate, requireVerifiedEmail)
 

@@ -4,7 +4,7 @@ import { validateZod } from '../middleware/validateZod.middleware.js'
 import { authenticate, authorize, requireVerifiedEmail } from '../middleware/auth.middleware.js'
 import { studentParamsSchema, studentQuerySchema, createStudentSchema, updateStudentSchema } from '../validations/studentValidation.js'
 
-const router = Router()
+const router: Router = Router()
 
 router.use(authenticate, requireVerifiedEmail)
 

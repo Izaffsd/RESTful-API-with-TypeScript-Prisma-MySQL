@@ -12,7 +12,7 @@ const mykadUpdateSchema = z.object({
   mykadNumber: mykadSchema,
 })
 
-const router = Router()
+const router: Router = Router()
 
 router.use(authenticate, requireVerifiedEmail)
 
@@ -23,6 +23,14 @@ router.get('/course', authorize('STUDENT'), meController.getMyCourse)
 router.get('/lecturer', authorize('LECTURER'), meController.getMyLecturer)
 router.patch('/lecturer', authorize('LECTURER'), validateZod(mykadUpdateSchema, 'body'), meController.updateMyLecturer)
 router.get('/students', authorize('LECTURER'), validateZod(paginationSchema, 'query'), meController.getMyStudents)
+
+router.get('/head-lecturer', authorize('HEAD_LECTURER'), meController.getMyHeadLecturer)
+router.patch(
+  '/head-lecturer',
+  authorize('HEAD_LECTURER'),
+  validateZod(mykadUpdateSchema, 'body'),
+  meController.updateMyHeadLecturer,
+)
 
 router.get('/documents', meController.getMyDocuments)
 router.post(

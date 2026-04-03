@@ -3,6 +3,7 @@ import type { z } from 'zod'
 import { response } from '../utils/response.js'
 
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace -- Express.Request augmentation
   namespace Express {
     interface Request {
       validated: {

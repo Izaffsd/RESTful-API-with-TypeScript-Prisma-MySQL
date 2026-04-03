@@ -5,7 +5,8 @@ import { response } from '../utils/response.js'
 import logger from '../utils/logger.js'
 import { requestLogFields } from '../utils/requestLogFields.js'
 
-export const errorHandler = (err: Error, req: Request, res: Response, _next: NextFunction): void => {
+export const errorHandler = (err: Error, req: Request, res: Response, next: NextFunction): void => {
+  void next
   if (err instanceof multer.MulterError) {
     const messages: Record<string, string> = {
       LIMIT_FILE_SIZE: 'File size exceeds the allowed limit',

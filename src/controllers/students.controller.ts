@@ -1,9 +1,11 @@
 import type { Request, Response } from 'express'
 import { response } from '../utils/response.js'
 import { buildPagination } from '../utils/pagination.js'
+import { AppError } from '../utils/AppError.js'
 import * as studentsService from '../services/students.service.js'
 import { serializeWithDocuments } from '../services/documents.service.js'
 import { enrichWithAuthUser, enrichWithAuthUsers } from '../utils/enrichAuthUser.js'
+import { assertCanAccessStudent, getLecturerScope } from '../utils/resourceAccess.js'
 import type { studentQuerySchema } from '../validations/studentValidation.js'
 import type { z } from 'zod'
 
@@ -11,7 +13,15 @@ type StudentQuery = z.infer<typeof studentQuerySchema>
 
 export const getAllStudents = async (req: Request, res: Response): Promise<void> => {
   const { page, limit, ...filters } = req.validated.query as StudentQuery
-  const { items, total } = await studentsService.getAll(page, limit, filters)
+  let restrictToCourseId: string | undefined
+  if (req.user!.type === 'LECTURER') {
+    const lec = await getLecturerScope(req.user!.userId)
+    if (!lec) {
+      throw new AppError('Lecturer record not found', 404, 'LECTURER_NOT_FOUND_404')
+    }
+    restrictToCourseId = lec.courseId
+  }
+  const { items, total } = await studentsService.getAll(page, limit, filters, { restrictToCourseId })
   const enriched = await enrichWithAuthUsers(items)
   const serialized = await Promise.all(
     enriched.map((item) => serializeWithDocuments(item as { documents?: unknown[] })),
@@ -22,6 +32,7 @@ export const getAllStudents = async (req: Request, res: Response): Promise<void>
 
 export const getStudentById = async (req: Request, res: Response): Promise<void> => {
   const { studentId } = req.validated.params as { studentId: string }
+  await assertCanAccessStudent(req.user!.type, req.user!.userId, studentId)
   const student = await studentsService.getById(studentId)
   const enriched = await enrichWithAuthUser(student)
   response(res, 200, 'Student retrieved successfully', await serializeWithDocuments(enriched))

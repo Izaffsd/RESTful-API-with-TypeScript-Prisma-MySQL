@@ -30,11 +30,22 @@ function escapeHtml(s: string): string {
     .replace(/"/g, '&quot;')
 }
 
-export async function sendPasswordChangeSecurityEmail(input: PasswordChangeEmailInput): Promise<boolean> {
+export type PasswordChangeEmailSendResult = {
+  sent: boolean
+  /** Why the alert email was not delivered (for API/UI when `sent` is false). */
+  failureReason?: string
+}
+
+export async function sendPasswordChangeSecurityEmail(
+  input: PasswordChangeEmailInput,
+): Promise<PasswordChangeEmailSendResult> {
   const from = env.FROM_EMAIL?.trim()
   if (!resend || !from) {
     logger.debug('Skipping password-change email: RESEND_API_KEY or FROM_EMAIL not set')
-    return false
+    return {
+      sent: false,
+      failureReason: 'Security email is not configured on the server (missing RESEND_API_KEY or FROM_EMAIL).',
+    }
   }
 
   const firstName = (input.recipientName ?? '').trim().split(/\s+/)[0] || 'there'
@@ -125,9 +136,13 @@ export async function sendPasswordChangeSecurityEmail(input: PasswordChangeEmail
 
   if (error) {
     logger.warn({ resendError: error }, 'Resend password-change email failed')
-    return false
+    const msg =
+      typeof error === 'object' && error !== null && 'message' in error && typeof (error as { message: unknown }).message === 'string'
+        ? (error as { message: string }).message
+        : 'The security alert email could not be sent.'
+    return { sent: false, failureReason: msg }
   }
 
   logger.info({ to: input.to, subject, id: data?.id }, 'Password change security email sent')
-  return true
+  return { sent: true }
 }

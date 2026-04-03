@@ -153,5 +153,8 @@ export const changePassword = async (req: Request, res: Response): Promise<void>
     accessToken: result.accessToken,
     othersSignedOut: result.othersSignedOut,
     securityEmailSent: result.securityEmailSent,
+    ...(result.securityEmailFailureReason
+      ? { securityEmailFailureReason: result.securityEmailFailureReason }
+      : {}),
   })
 }

@@ -94,6 +94,35 @@ export const updateMyLecturer = async (req: Request, res: Response): Promise<voi
   response(res, 200, 'Lecturer data updated successfully', updated)
 }
 
+export const getMyHeadLecturer = async (req: Request, res: Response): Promise<void> => {
+  const hl = await prisma.headLecturer.findUnique({
+    where: { userId: req.user!.userId },
+  })
+  if (!hl) throw new AppError('Head lecturer record not found', 404, 'HEAD_LECTURER_NOT_FOUND_404')
+  response(res, 200, 'Head lecturer data retrieved successfully', hl)
+}
+
+export const updateMyHeadLecturer = async (req: Request, res: Response): Promise<void> => {
+  const hl = await prisma.headLecturer.findUnique({ where: { userId: req.user!.userId } })
+  if (!hl) throw new AppError('Head lecturer record not found', 404, 'HEAD_LECTURER_NOT_FOUND_404')
+
+  const data = req.validated.body as { mykadNumber?: string | null }
+  if (data.mykadNumber) {
+    const existing = await prisma.headLecturer.findFirst({
+      where: { mykadNumber: data.mykadNumber, headLecturerId: { not: hl.headLecturerId } },
+    })
+    if (existing) {
+      throw new AppError('MyKad number already registered to another head lecturer', 409, 'DUPLICATE_MYKAD_409')
+    }
+  }
+
+  const updated = await prisma.headLecturer.update({
+    where: { headLecturerId: hl.headLecturerId },
+    data: { mykadNumber: data.mykadNumber },
+  })
+  response(res, 200, 'Head lecturer data updated successfully', updated)
+}
+
 export const getMyStudents = async (req: Request, res: Response): Promise<void> => {
   const lecturer = await prisma.lecturer.findUnique({ where: { userId: req.user!.userId } })
   if (!lecturer) throw new AppError('Lecturer record not found', 404, 'LECTURER_NOT_FOUND_404')

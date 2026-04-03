@@ -19,7 +19,13 @@ const corsOrigins = env.FRONTEND_URL
   : ['http://localhost:3000', 'http://localhost:5173']
 
 app.use(requestId)
-app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }))
+// Swagger UI needs relaxed CSP (inline scripts/styles). Only when docs are enabled.
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+    ...(env.API_DOCS_ENABLED ? { contentSecurityPolicy: false } : {}),
+  }),
+)
 app.use(pinoHttp({
   logger,
   // Reduce log spam: only log when it's an error (>= 400) or an exception.
@@ -60,7 +66,8 @@ app.use(pinoHttp({
   customErrorObject(_req, res, err, loggableObject) {
     const synthetic = typeof err?.message === 'string' && err.message.startsWith('failed with status code')
     if (synthetic) {
-      const { err: _omit, ...rest } = loggableObject as Record<string, unknown> & { err?: unknown }
+      const rest = { ...(loggableObject as Record<string, unknown>) }
+      delete rest.err
       return { ...rest, httpStatus: res.statusCode }
     }
     return loggableObject

@@ -2,6 +2,7 @@ import type { Request, Response } from 'express'
 import { response } from '../utils/response.js'
 import { AppError } from '../utils/AppError.js'
 import * as documentsService from '../services/documents.service.js'
+import { assertCanAccessLecturerEntity, assertCanAccessStudent } from '../utils/resourceAccess.js'
 
 const requireFile = (req: Request) => {
   if (!req.file) throw new AppError('No file uploaded', 400, 'NO_FILE_400')
@@ -10,6 +11,7 @@ const requireFile = (req: Request) => {
 
 export const uploadStudentDocument = async (req: Request, res: Response): Promise<void> => {
   const { studentId } = req.validated.params as { studentId: string }
+  await assertCanAccessStudent(req.user!.type, req.user!.userId, studentId)
   const file = requireFile(req)
   const { category } = req.validated.body as { category: string }
 
@@ -25,6 +27,7 @@ export const uploadStudentDocument = async (req: Request, res: Response): Promis
 
 export const getStudentDocuments = async (req: Request, res: Response): Promise<void> => {
   const { studentId } = req.validated.params as { studentId: string }
+  await assertCanAccessStudent(req.user!.type, req.user!.userId, studentId)
   const docs = await documentsService.getDocumentsByEntity(studentId, 'STUDENT')
   const serialized = await Promise.all(docs.map((d) => documentsService.serializeDocument(d)))
   response(res, 200, 'Documents retrieved successfully', serialized)
@@ -32,6 +35,7 @@ export const getStudentDocuments = async (req: Request, res: Response): Promise<
 
 export const uploadLecturerDocument = async (req: Request, res: Response): Promise<void> => {
   const { lecturerId } = req.validated.params as { lecturerId: string }
+  await assertCanAccessLecturerEntity(req.user!.type, req.user!.userId, lecturerId)
   const file = requireFile(req)
   const { category } = req.validated.body as { category: string }
 
@@ -47,6 +51,7 @@ export const uploadLecturerDocument = async (req: Request, res: Response): Promi
 
 export const getLecturerDocuments = async (req: Request, res: Response): Promise<void> => {
   const { lecturerId } = req.validated.params as { lecturerId: string }
+  await assertCanAccessLecturerEntity(req.user!.type, req.user!.userId, lecturerId)
   const docs = await documentsService.getDocumentsByEntity(lecturerId, 'LECTURER')
   const serialized = await Promise.all(docs.map((d) => documentsService.serializeDocument(d)))
   response(res, 200, 'Documents retrieved successfully', serialized)

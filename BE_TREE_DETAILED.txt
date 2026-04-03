@@ -1,0 +1,97 @@
+BE: api-ts-prisma/
+├─ logs/
+├─ prisma/
+│  ├─ migrations/
+│  │  ├─ 20260312021143_init/
+│  │  │  └─ migration.sql
+│  │  ├─ 20260312051415_student_number_course_optional/
+│  │  │  └─ migration.sql
+│  │  ├─ 20260324070200_password_signup_profile_google_link/
+│  │  │  └─ migration.sql
+│  │  ├─ 20260324120000_last_password_change_at/
+│  │  │  └─ migration.sql
+│  │  └─ migration_lock.toml
+│  ├─ seed/
+│  │  └─ seed.sql
+│  ├─ seed.ts
+│  └─ schema.prisma
+└─ src/
+   ├─ app.ts
+   ├─ server.ts
+   ├─ config/
+   │  ├─ db.ts
+   │  ├─ env.ts
+   │  ├─ ratelimit.ts
+   │  ├─ redis.ts
+   │  ├─ resend.ts
+   │  ├─ supabase.ts
+   │  └─ upload.ts
+   ├─ controllers/
+   │  ├─ auth.controller.ts
+   │  ├─ courses.controller.ts
+   │  ├─ documents.controller.ts
+   │  ├─ headLecturers.controller.ts
+   │  ├─ lecturers.controller.ts
+   │  ├─ me.controller.ts
+   │  ├─ students.controller.ts
+   │  └─ utility.controller.ts
+   ├─ middleware/
+   │  ├─ auth.middleware.ts
+   │  ├─ errorHandler.middleware.ts
+   │  ├─ rateLimit.middleware.ts
+   │  ├─ requestId.middleware.ts
+   │  └─ validateZod.middleware.ts
+   ├─ redis/
+   │  ├─ accessTokenBlacklist.ts
+   │  ├─ crypto.ts
+   │  ├─ emailVerifyOtp.ts
+   │  ├─ passwordResetToken.ts
+   │  ├─ refreshTokenRotation.ts
+   │  └─ signedUrlCache.ts
+   ├─ routes/
+   │  ├─ auth.routes.ts
+   │  ├─ courses.routes.ts
+   │  ├─ documents.routes.ts
+   │  ├─ headLecturers.routes.ts
+   │  ├─ index.ts
+   │  ├─ lecturers.routes.ts
+   │  ├─ me.routes.ts
+   │  └─ students.routes.ts
+   ├─ services/
+   │  ├─ auth.service.ts
+   │  ├─ courses.service.ts
+   │  ├─ documents.service.ts
+   │  ├─ headLecturers.service.ts
+   │  ├─ lecturers.service.ts
+   │  └─ students.service.ts
+   ├─ types/
+   │  └─ express.d.ts
+   ├─ utils/
+   │  ├─ AppError.ts
+   │  ├─ authIdentities.ts
+   │  ├─ authUserLookup.ts
+   │  ├─ clientDevice.ts
+   │  ├─ cookies.ts
+   │  ├─ enrichAuthUser.ts
+   │  ├─ logger.ts
+   │  ├─ pagination.ts
+   │  ├─ prismaErrors.ts
+   │  ├─ response.ts
+   │  ├─ storage.ts
+   │  └─ emails/
+   │     ├─ emailVerifyOtp.email.ts
+   │     ├─ passwordChange.email.ts
+   │     └─ passwordReset.email.ts
+   └─ validations/
+      ├─ authValidation.ts
+      ├─ courseValidation.ts
+      ├─ documentValidation.ts
+      ├─ headLecturerValidation.ts
+      ├─ lecturerValidation.ts
+      ├─ profileValidation.ts
+      ├─ studentValidation.ts
+      └─ shared/
+         ├─ id.validation.ts
+         ├─ mykad.validation.ts
+         ├─ paginationSchema.ts
+         └─ phone.validation.ts

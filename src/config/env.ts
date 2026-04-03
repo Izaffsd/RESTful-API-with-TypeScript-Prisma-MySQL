@@ -34,6 +34,20 @@ const envSchema = z.object({
   REDIS_SIGNED_URL_CACHE_TTL_SEC: z.coerce.number().int().positive().default(3000),
   /** When JWT has no exp claim, blacklist TTL for revoked access tokens. */
   REDIS_ACCESS_BLACKLIST_FALLBACK_TTL_SEC: z.coerce.number().int().positive().default(900),
+  /**
+   * Expose Swagger UI at GET /api/v1/docs (and /api/v1/docs/).
+   * Default: off in production, on otherwise. Set API_DOCS_ENABLED=false to disable locally.
+   */
+  API_DOCS_ENABLED: z.preprocess(
+    (v) => {
+      if (v === undefined || v === '') {
+        return process.env.NODE_ENV === 'production' ? false : true
+      }
+      if (v === 'false' || v === '0') return false
+      return true
+    },
+    z.boolean(),
+  ),
 })
 
 const result = envSchema.safeParse(process.env)

@@ -17,7 +17,7 @@ import {
 } from '../validations/authValidation.js'
 import { updateProfileSchema } from '../validations/profileValidation.js'
 
-const router = Router()
+const router: Router = Router()
 
 router.post('/register', authRateLimit, validateZod(registerSchema, 'body'), authController.register)
 router.post('/login', authRateLimit, validateZod(loginSchema, 'body'), authController.login)

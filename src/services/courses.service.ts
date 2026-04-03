@@ -10,16 +10,18 @@ export const getForSelect = async () => {
   })
 }
 
-export const getAll = async (page: number, limit: number) => {
+export const getAll = async (page: number, limit: number, restrictToCourseId?: string) => {
   const skip = (page - 1) * limit
+  const where = restrictToCourseId ? { courseId: restrictToCourseId } : {}
   const [items, total] = await Promise.all([
     prisma.course.findMany({
+      where,
       orderBy: { courseCode: 'asc' },
       skip,
       take: limit,
       include: { _count: { select: { students: true, lecturers: true } } },
     }),
-    prisma.course.count(),
+    prisma.course.count({ where }),
   ])
 
   const data = items.map((c) => ({

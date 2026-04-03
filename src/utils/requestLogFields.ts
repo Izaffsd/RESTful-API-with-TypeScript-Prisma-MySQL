@@ -7,7 +7,7 @@ import type { Request } from 'express'
 export function requestLogFields(req: Request | undefined): Record<string, string> {
   if (!req) return {}
   const o: Record<string, string> = {}
-  if (req.id) o.requestId = req.id
+  if (req.id != null && req.id !== '') o.requestId = String(req.id)
   if (req.user) {
     o.userId = req.user.userId
     o.userType = req.user.type

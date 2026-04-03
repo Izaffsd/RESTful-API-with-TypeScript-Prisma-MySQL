@@ -5,7 +5,7 @@ import { authenticate, authorize, requireVerifiedEmail } from '../middleware/aut
 import { paginationSchema } from '../validations/shared/paginationSchema.js'
 import { courseParamsSchema, createCourseSchema, updateCourseSchema } from '../validations/courseValidation.js'
 
-const router = Router()
+const router: Router = Router()
 
 router.use(authenticate, requireVerifiedEmail)
 

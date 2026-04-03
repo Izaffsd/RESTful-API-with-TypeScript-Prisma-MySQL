@@ -34,11 +34,31 @@ import { sendPasswordChangeSecurityEmail } from '../utils/emails/passwordChange.
 import { sendEmailVerifyOtpEmail } from '../utils/emails/emailVerifyOtp.email.js'
 import { sendPasswordResetLinkEmail } from '../utils/emails/passwordReset.email.js'
 
+/** Latest profile photo per entity (header + /me). Omit `fileSize` (BigInt) for JSON responses. */
+const profilePictureDocs = {
+  where: { deletedAt: null, category: 'PROFILE_PICTURE' as const },
+  orderBy: { createdAt: 'desc' as const },
+  take: 1,
+  select: {
+    documentId: true,
+    entityId: true,
+    entityType: true,
+    fileName: true,
+    originalName: true,
+    mimeType: true,
+    filePath: true,
+    fileUrl: true,
+    category: true,
+    createdAt: true,
+    updatedAt: true,
+  },
+}
+
 const userInclude = {
   profile: true,
-  student: { include: { course: true } },
-  lecturer: { include: { course: true } },
-  headLecturer: true,
+  student: { include: { course: true, documents: profilePictureDocs } },
+  lecturer: { include: { course: true, documents: profilePictureDocs } },
+  headLecturer: { include: { documents: profilePictureDocs } },
 } as const
 
 /**
@@ -803,7 +823,7 @@ export const updateProfile = async (userId: string, userType: UserType, data: {
       throw new AppError('Course not found for student number prefix', 404, 'COURSE_NOT_FOUND_404')
     }
 
-    let student = await prisma.student.findUnique({ where: { userId } })
+    const student = await prisma.student.findUnique({ where: { userId } })
     if (!student) {
       const existing = await prisma.student.findUnique({ where: { studentNumber } })
       if (existing) {
@@ -854,6 +874,8 @@ export type ChangePasswordResult = {
   refreshToken: string
   othersSignedOut: boolean
   securityEmailSent: boolean
+  /** Present when `securityEmailSent` is false and we can explain why (e.g. Resend rejection). */
+  securityEmailFailureReason?: string
 }
 
 export const changePassword = async (
@@ -961,7 +983,7 @@ export const changePassword = async (
   const locationHint = env.SECURITY_EMAIL_LOCATION_HINT?.trim() ?? ''
   const resetUrl = `${env.FRONTEND_URL.replace(/\/$/, '')}/forgot-password`
 
-  const securityEmailSent = await sendPasswordChangeSecurityEmail({
+  const emailResult = await sendPasswordChangeSecurityEmail({
     to: authUser.email,
     recipientName: dbUserRow?.name ?? null,
     wasExistingPassword: accountHasPassword,
@@ -977,6 +999,7 @@ export const changePassword = async (
     accessToken: newAccessToken,
     refreshToken: newRefreshToken,
     othersSignedOut,
-    securityEmailSent,
+    securityEmailSent: emailResult.sent,
+    ...(emailResult.sent ? {} : { securityEmailFailureReason: emailResult.failureReason }),
   }
 }

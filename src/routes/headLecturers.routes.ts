@@ -5,7 +5,7 @@ import { authenticate, authorize, requireVerifiedEmail } from '../middleware/aut
 import { paginationSchema } from '../validations/shared/paginationSchema.js'
 import { headLecturerParamsSchema, createHeadLecturerSchema, updateHeadLecturerSchema } from '../validations/headLecturerValidation.js'
 
-const router = Router()
+const router: Router = Router()
 
 router.use(authenticate, requireVerifiedEmail, authorize('HEAD_LECTURER'))
 

@@ -1,8 +1,11 @@
 import { Router } from 'express'
+import swaggerUi from 'swagger-ui-express'
 import prisma from '../config/db.js'
+import { env } from '../config/env.js'
 import logger from '../utils/logger.js'
 import { authenticate, authorize, requireVerifiedEmail } from '../middleware/auth.middleware.js'
 import { getEnums, getStats } from '../controllers/utility.controller.js'
+import { openApiSpec } from '../docs/openapiSpec.js'
 
 import authRoutes from './auth.routes.js'
 import meRoutes from './me.routes.js'
@@ -12,7 +15,15 @@ import lecturersRoutes from './lecturers.routes.js'
 import headLecturersRoutes from './headLecturers.routes.js'
 import documentsRoutes from './documents.routes.js'
 
-const router = Router()
+const router: Router = Router()
+
+if (env.API_DOCS_ENABLED) {
+  router.use(
+    '/docs',
+    swaggerUi.serve,
+    swaggerUi.setup(openApiSpec as unknown as Record<string, unknown>, { customSiteTitle: 'Monash API docs' }),
+  )
+}
 
 router.get('/', (_req, res) => {
   res.status(200).json({
