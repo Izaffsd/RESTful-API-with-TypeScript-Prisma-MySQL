@@ -1,11 +1,10 @@
 import type { Request, Response } from 'express'
 import { response } from '../utils/response.js'
 import { buildPagination } from '../utils/pagination.js'
-import { AppError } from '../utils/AppError.js'
 import * as studentsService from '../services/students.service.js'
 import { serializeWithDocuments } from '../services/documents.service.js'
 import { enrichWithAuthUser, enrichWithAuthUsers } from '../utils/enrichAuthUser.js'
-import { assertCanAccessStudent, getLecturerScope } from '../utils/resourceAccess.js'
+import { assertCanAccessStudent } from '../utils/resourceAccess.js'
 import type { studentQuerySchema } from '../validations/studentValidation.js'
 import type { z } from 'zod'
 
@@ -13,15 +12,7 @@ type StudentQuery = z.infer<typeof studentQuerySchema>
 
 export const getAllStudents = async (req: Request, res: Response): Promise<void> => {
   const { page, limit, ...filters } = req.validated.query as StudentQuery
-  let restrictToCourseId: string | undefined
-  if (req.user!.type === 'LECTURER') {
-    const lec = await getLecturerScope(req.user!.userId)
-    if (!lec) {
-      throw new AppError('Lecturer record not found', 404, 'LECTURER_NOT_FOUND_404')
-    }
-    restrictToCourseId = lec.courseId
-  }
-  const { items, total } = await studentsService.getAll(page, limit, filters, { restrictToCourseId })
+  const { items, total } = await studentsService.getAll(page, limit, filters, { type: req.user!.type, userId: req.user!.userId })
   const enriched = await enrichWithAuthUsers(items)
   const serialized = await Promise.all(
     enriched.map((item) => serializeWithDocuments(item as { documents?: unknown[] })),

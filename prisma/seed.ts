@@ -60,7 +60,7 @@ const COURSES = [
 const supabaseUrl = process.env.SUPABASE_URL?.trim()
 const serviceKey = process.env.SUPABASE_SERVICE_KEY?.trim()
 const email = (process.env.SEED_HEAD_EMAIL ?? 'muhdiskandaraffi99@gmail.com').trim().toLowerCase()
-const password = process.env.SEED_HEAD_PASSWORD ?? 'SeedHeadLecturer123!'
+const password = process.env.SEED_HEAD_PASSWORD
 
 const connectionString =
   process.env.DIRECT_URL?.trim() || process.env.DATABASE_URL?.trim()
@@ -151,7 +151,7 @@ async function main(): Promise<void> {
 
   console.log('Seed complete: 7 courses + head lecturer (Supabase Auth linked).')
   console.log(`  Email: ${email}`)
-  console.log('  Password: SEED_HEAD_PASSWORD or default SeedHeadLecturer123!')
+  console.log('  Password: SEED_HEAD_PASSWORD or default Test@123')
   console.log('  Login: POST /api/v1/auth/login')
 }
 

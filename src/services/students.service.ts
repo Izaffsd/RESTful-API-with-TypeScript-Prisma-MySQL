@@ -1,12 +1,21 @@
 import prisma from '../config/db.js'
-import { supabaseAdmin } from '../config/supabase.js'
 import { AppError } from '../utils/AppError.js'
 import { handlePrismaError } from '../utils/prismaErrors.js'
+import { createEntityAccount } from './createEntityAccount.js'
+import { getLecturerScope } from '../utils/resourceAccess.js'
+import type { UserType } from '@prisma/client'
 
 const studentInclude = {
   user: { include: { profile: true } },
   course: { select: { courseId: true, courseCode: true, courseName: true } },
 } as const
+
+async function resolveScopeForActor(actorType: UserType, actorUserId: string): Promise<string | undefined> {
+  if (actorType !== 'LECTURER') return undefined
+  const lec = await getLecturerScope(actorUserId)
+  if (!lec) throw new AppError('Lecturer record not found', 404, 'LECTURER_NOT_FOUND_404')
+  return lec.courseId
+}
 
 export const getAll = async (
   page: number,
@@ -18,11 +27,12 @@ export const getAll = async (
     sortBy?: string
     order?: 'asc' | 'desc'
   },
-  options?: { restrictToCourseId?: string },
+  actor: { type: UserType; userId: string },
 ) => {
+  const restrictToCourseId = await resolveScopeForActor(actor.type, actor.userId)
   const where: Record<string, unknown> = { user: { deletedAt: null } }
-  if (options?.restrictToCourseId) {
-    where.courseId = options.restrictToCourseId
+  if (restrictToCourseId) {
+    where.courseId = restrictToCourseId
   }
   if (filters.search) {
     where.OR = [
@@ -37,7 +47,10 @@ export const getAll = async (
   }
 
   const sortBy = filters.sortBy ?? 'createdAt'
-  const orderBy = sortBy === 'name' ? { createdAt: filters.order ?? 'desc' } : { [sortBy]: filters.order ?? 'desc' }
+  const dir = filters.order ?? 'desc'
+  const orderBy = sortBy === 'name'
+    ? { user: { name: dir } }
+    : { [sortBy]: dir }
 
   const skip = (page - 1) * limit
   const [items, total] = await Promise.all([
@@ -75,39 +88,20 @@ export const create = async (data: {
   const course = await prisma.course.findUnique({ where: { courseCode: data.courseCode } })
   if (!course) throw new AppError('Course not found', 404, 'COURSE_NOT_FOUND_404')
 
-  const defaultPassword = `Monash@${data.studentNumber}`
-  const { data: authData, error } = await supabaseAdmin.auth.admin.createUser({
+  const { authUserId } = await createEntityAccount({
     email: data.email,
-    password: defaultPassword,
-    email_confirm: true,
-    user_metadata: { name: data.name },
+    password: `Monash@${data.studentNumber}`,
+    name: data.name,
+    userType: 'STUDENT',
   })
 
-  if (error) {
-    if (error.message?.toLowerCase().includes('already') || error.message?.toLowerCase().includes('registered')) {
-      throw new AppError('Email already registered', 409, 'DUPLICATE_EMAIL_409')
-    }
-    throw new AppError(error.message ?? 'Failed to create student', 400, 'CREATE_FAILED_400')
-  }
-
-  if (!authData.user) {
-    throw new AppError('Failed to create student', 400, 'CREATE_FAILED_400')
-  }
-
   try {
-    // Ensure the prisma `users` row exists (foreign key for `students.userId`).
-    await prisma.user.upsert({
-      where: { userId: authData.user.id },
-      create: { userId: authData.user.id, type: 'STUDENT', status: 'ACTIVE', name: data.name },
-      update: { type: 'STUDENT', name: data.name },
-    })
-
     return await prisma.student.create({
       data: {
         studentNumber: data.studentNumber,
         mykadNumber: data.mykadNumber ?? null,
         courseId: course.courseId,
-        userId: authData.user.id,
+        userId: authUserId,
       },
       include: studentInclude,
     })

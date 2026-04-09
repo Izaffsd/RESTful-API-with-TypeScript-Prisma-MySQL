@@ -1,9 +1,8 @@
 import type { Request, Response } from 'express'
 import { response } from '../utils/response.js'
 import { buildPagination } from '../utils/pagination.js'
-import { AppError } from '../utils/AppError.js'
 import * as coursesService from '../services/courses.service.js'
-import { assertCanAccessCourse, getLecturerScope } from '../utils/resourceAccess.js'
+import { assertCanAccessCourse } from '../utils/resourceAccess.js'
 import type { PaginationQuery } from '../validations/shared/paginationSchema.js'
 
 export const getCoursesForSelect = async (_req: Request, res: Response): Promise<void> => {
@@ -13,15 +12,7 @@ export const getCoursesForSelect = async (_req: Request, res: Response): Promise
 
 export const getAllCourses = async (req: Request, res: Response): Promise<void> => {
   const { page, limit } = req.validated.query as PaginationQuery
-  let restrictToCourseId: string | undefined
-  if (req.user!.type === 'LECTURER') {
-    const lec = await getLecturerScope(req.user!.userId)
-    if (!lec) {
-      throw new AppError('Lecturer record not found', 404, 'LECTURER_NOT_FOUND_404')
-    }
-    restrictToCourseId = lec.courseId
-  }
-  const { items, total } = await coursesService.getAll(page, limit, restrictToCourseId)
+  const { items, total } = await coursesService.getAll(page, limit, { type: req.user!.type, userId: req.user!.userId })
   const { meta, links } = buildPagination(req, page, limit, total)
   response(res, 200, 'Courses retrieved successfully', items, null, [], meta, links)
 }

@@ -1,159 +1,62 @@
 import type { Request, Response } from 'express'
 import { response } from '../utils/response.js'
 import { buildPagination } from '../utils/pagination.js'
-import prisma from '../config/db.js'
 import { AppError } from '../utils/AppError.js'
+import * as meService from '../services/me.service.js'
 import * as documentsService from '../services/documents.service.js'
-import { enrichWithAuthUsers } from '../utils/enrichAuthUser.js'
 import type { PaginationQuery } from '../validations/shared/paginationSchema.js'
 
-const getEntityRecord = async (userId: string, type: string) => {
-  if (type === 'STUDENT') {
-    const r = await prisma.student.findUnique({ where: { userId } })
-    return r ? { entityId: r.studentId, model: 'student' } : null
-  }
-  if (type === 'LECTURER') {
-    const r = await prisma.lecturer.findUnique({ where: { userId } })
-    return r ? { entityId: r.lecturerId, model: 'lecturer' } : null
-  }
-  const r = await prisma.headLecturer.findUnique({ where: { userId } })
-  return r ? { entityId: r.headLecturerId, model: 'headLecturer' } : null
-}
-
 export const getMyStudent = async (req: Request, res: Response): Promise<void> => {
-  const student = await prisma.student.findUnique({
-    where: { userId: req.user!.userId },
-    include: { course: true },
-  })
-  if (!student) throw new AppError('Student record not found', 404, 'STUDENT_NOT_FOUND_404')
+  const student = await meService.getMyStudent(req.user!.userId)
   response(res, 200, 'Student data retrieved successfully', student)
 }
 
 export const updateMyStudent = async (req: Request, res: Response): Promise<void> => {
-  const student = await prisma.student.findUnique({ where: { userId: req.user!.userId } })
-  if (!student) throw new AppError('Student record not found', 404, 'STUDENT_NOT_FOUND_404')
-
   const data = req.validated.body as { mykadNumber?: string | null }
-  if (data.mykadNumber) {
-    const existing = await prisma.student.findFirst({
-      where: { mykadNumber: data.mykadNumber, studentId: { not: student.studentId } },
-    })
-    if (existing) {
-      throw new AppError('MyKad number already registered to another student', 409, 'DUPLICATE_MYKAD_409')
-    }
-  }
-
-  const updated = await prisma.student.update({
-    where: { studentId: student.studentId },
-    data: { mykadNumber: data.mykadNumber },
-    include: { course: true },
-  })
+  const updated = await meService.updateMyStudent(req.user!.userId, data)
   response(res, 200, 'Student data updated successfully', updated)
 }
 
 export const getMyCourse = async (req: Request, res: Response): Promise<void> => {
-  const student = await prisma.student.findUnique({
-    where: { userId: req.user!.userId },
-    include: { course: true },
-  })
-  if (!student) {
+  const course = await meService.getMyCourse(req.user!.userId)
+  if (!course) {
     response(res, 200, 'No course assigned', null)
     return
   }
-  response(res, 200, 'Course retrieved successfully', student.course)
+  response(res, 200, 'Course retrieved successfully', course)
 }
 
 export const getMyLecturer = async (req: Request, res: Response): Promise<void> => {
-  const lecturer = await prisma.lecturer.findUnique({
-    where: { userId: req.user!.userId },
-    include: { course: true },
-  })
-  if (!lecturer) throw new AppError('Lecturer record not found', 404, 'LECTURER_NOT_FOUND_404')
+  const lecturer = await meService.getMyLecturer(req.user!.userId)
   response(res, 200, 'Lecturer data retrieved successfully', lecturer)
 }
 
 export const updateMyLecturer = async (req: Request, res: Response): Promise<void> => {
-  const lecturer = await prisma.lecturer.findUnique({ where: { userId: req.user!.userId } })
-  if (!lecturer) throw new AppError('Lecturer record not found', 404, 'LECTURER_NOT_FOUND_404')
-
   const data = req.validated.body as { mykadNumber?: string | null }
-  if (data.mykadNumber) {
-    const existing = await prisma.lecturer.findFirst({
-      where: { mykadNumber: data.mykadNumber, lecturerId: { not: lecturer.lecturerId } },
-    })
-    if (existing) {
-      throw new AppError('MyKad number already registered to another lecturer', 409, 'DUPLICATE_MYKAD_409')
-    }
-  }
-
-  const updated = await prisma.lecturer.update({
-    where: { lecturerId: lecturer.lecturerId },
-    data: { mykadNumber: data.mykadNumber },
-    include: { course: true },
-  })
+  const updated = await meService.updateMyLecturer(req.user!.userId, data)
   response(res, 200, 'Lecturer data updated successfully', updated)
 }
 
 export const getMyHeadLecturer = async (req: Request, res: Response): Promise<void> => {
-  const hl = await prisma.headLecturer.findUnique({
-    where: { userId: req.user!.userId },
-  })
-  if (!hl) throw new AppError('Head lecturer record not found', 404, 'HEAD_LECTURER_NOT_FOUND_404')
+  const hl = await meService.getMyHeadLecturer(req.user!.userId)
   response(res, 200, 'Head lecturer data retrieved successfully', hl)
 }
 
 export const updateMyHeadLecturer = async (req: Request, res: Response): Promise<void> => {
-  const hl = await prisma.headLecturer.findUnique({ where: { userId: req.user!.userId } })
-  if (!hl) throw new AppError('Head lecturer record not found', 404, 'HEAD_LECTURER_NOT_FOUND_404')
-
   const data = req.validated.body as { mykadNumber?: string | null }
-  if (data.mykadNumber) {
-    const existing = await prisma.headLecturer.findFirst({
-      where: { mykadNumber: data.mykadNumber, headLecturerId: { not: hl.headLecturerId } },
-    })
-    if (existing) {
-      throw new AppError('MyKad number already registered to another head lecturer', 409, 'DUPLICATE_MYKAD_409')
-    }
-  }
-
-  const updated = await prisma.headLecturer.update({
-    where: { headLecturerId: hl.headLecturerId },
-    data: { mykadNumber: data.mykadNumber },
-  })
+  const updated = await meService.updateMyHeadLecturer(req.user!.userId, data)
   response(res, 200, 'Head lecturer data updated successfully', updated)
 }
 
 export const getMyStudents = async (req: Request, res: Response): Promise<void> => {
-  const lecturer = await prisma.lecturer.findUnique({ where: { userId: req.user!.userId } })
-  if (!lecturer) throw new AppError('Lecturer record not found', 404, 'LECTURER_NOT_FOUND_404')
-
   const { page, limit } = req.validated.query as PaginationQuery
-  const skip = (page - 1) * limit
-  const where = { courseId: lecturer.courseId, user: { deletedAt: null } }
-
-  const [items, total] = await Promise.all([
-    prisma.student.findMany({
-      where,
-      include: { user: { include: { profile: true } }, course: { select: { courseId: true, courseCode: true, courseName: true } } },
-      skip,
-      take: limit,
-    }),
-    prisma.student.count({ where }),
-  ])
-  const enriched = await enrichWithAuthUsers(items)
+  const { items, total } = await meService.getMyStudents(req.user!.userId, page, limit)
   const { meta, links } = buildPagination(req, page, limit, total)
-  response(res, 200, 'Students retrieved successfully', enriched, null, [], meta, links)
+  response(res, 200, 'Students retrieved successfully', items, null, [], meta, links)
 }
 
-const entityNotFoundMessage = (type: string) =>
-  type === 'STUDENT'
-    ? 'Add your student number and course in the profile page to upload documents.'
-    : type === 'LECTURER'
-      ? 'No lecturer profile linked to your account. Contact an administrator.'
-      : 'No head lecturer profile linked to your account. Contact an administrator.'
-
 export const getMyDocuments = async (req: Request, res: Response): Promise<void> => {
-  const entity = await getEntityRecord(req.user!.userId, req.user!.type)
+  const entity = await meService.getEntityRecord(req.user!.userId, req.user!.type)
   if (!entity) {
     response(res, 200, 'Documents retrieved successfully', [])
     return
@@ -167,8 +70,8 @@ export const getMyDocuments = async (req: Request, res: Response): Promise<void>
 export const uploadMyDocument = async (req: Request, res: Response): Promise<void> => {
   if (!req.file) throw new AppError('No file uploaded', 400, 'NO_FILE_400')
 
-  const entity = await getEntityRecord(req.user!.userId, req.user!.type)
-  if (!entity) throw new AppError(entityNotFoundMessage(req.user!.type), 404, 'RECORD_NOT_FOUND_404')
+  const entity = await meService.getEntityRecord(req.user!.userId, req.user!.type)
+  if (!entity) throw new AppError(meService.entityNotFoundMessage(req.user!.type), 404, 'RECORD_NOT_FOUND_404')
 
   const { category } = req.validated.body as { category: string }
 
@@ -185,9 +88,9 @@ export const uploadMyDocument = async (req: Request, res: Response): Promise<voi
 
 export const deleteMyDocument = async (req: Request, res: Response): Promise<void> => {
   const { documentId } = req.validated.params as { documentId: string }
-  const entity = await getEntityRecord(req.user!.userId, req.user!.type)
+  const entity = await meService.getEntityRecord(req.user!.userId, req.user!.type)
   if (!entity) {
-    throw new AppError(entityNotFoundMessage(req.user!.type), 404, 'RECORD_NOT_FOUND_404')
+    throw new AppError(meService.entityNotFoundMessage(req.user!.type), 404, 'RECORD_NOT_FOUND_404')
   }
 
   const doc = await documentsService.getDocumentById(documentId)

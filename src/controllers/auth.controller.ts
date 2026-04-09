@@ -84,7 +84,7 @@ export const forgotPassword = async (req: Request, res: Response): Promise<void>
     response(
       res,
       503,
-      'We could not send a reset email right now. Check Supabase Auth email/SMTP settings or try again later.',
+      'We could not send a reset email right now. Please try again later.',
       null,
       'EMAIL_DELIVERY_FAILED_503',
     )

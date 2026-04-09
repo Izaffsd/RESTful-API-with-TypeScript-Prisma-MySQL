@@ -74,6 +74,10 @@ pnpm run db:migrate
 
 Use **`pnpm run db:push`** only for quick local prototyping (not ideal for shared or production databases).
 
+### Row Level Security (Supabase)
+
+Migrations include **RLS enabled** on application tables (`users`, `profiles`, `students`, `lecturers`, `head_lecturers`, `courses`, `documents`) with **no permissive policies**. That blocks accidental **PostgREST / anon-key** access while **Prisma** (owner connection) continues to work normally. If the Supabase Security Advisor still flags tables, run **`pnpm run db:migrate`** / **`prisma migrate deploy`** so the latest migration is applied.
+
 ### 5. Seed (optional)
 
 ```bash
@@ -108,15 +112,16 @@ Production: `pnpm run build && pnpm start`.
 
 After the API is healthy, use **[`../frontend/README.md`](../frontend/README.md)**. Set **`NEXT_PUBLIC_API_URL`** to the API origin and use the **same Supabase project** as the backend.
 
-Monorepo CI (when you push the whole tree): **`../.github/workflows/ci.yml`**.
+Monorepo overview: **[`../README.md`](../README.md)**.
 
 ---
 
 ## Version
 
-Release version is **SemVer** in [`package.json`](./package.json) (`version`). The welcome route exposes it explicitly:
+- **npm package:** SemVer in [`package.json`](./package.json) (`version`).
+- **Runtime welcome:** `GET /api/v1/` returns `{ message, version: "1.0.1", apiVersion: "v1", timestamp }` (see `src/routes/index.ts`) — not wrapped in the standard `response()` envelope.
 
-- `GET /api/v1/` — `{ message, version, apiVersion, timestamp }` (not wrapped in the standard envelope below).
+Keep the welcome `version` string aligned with release notes when you ship API behaviour changes.
 
 ## Prisma
 
@@ -136,6 +141,8 @@ Default API base path: **`/api/v1`**. Dev / build / start commands are in **Gett
 
 - **Access:** send `Authorization: Bearer <access_token>` on protected routes (except where noted).  
 - **Refresh:** `POST /api/v1/auth/refresh` uses the **httpOnly** refresh cookie (and optional body); clients that use cookies should call it with `credentials: 'include'`.
+- **OAuth (Google):** the browser completes PKCE with Supabase, then calls **`POST /api/v1/auth/oauth-session`** with the Supabase `refreshToken` so the API can set the same refresh cookie as email login. Edge cases return **`409 AUTH_EMAIL_CONFLICT_409`** or **`409 GOOGLE_LINK_CONSENT_409`** — see **[`../frontend/docs/auth-and-oauth-phase-1.0.1.md`](../frontend/docs/auth-and-oauth-phase-1.0.1.md)**.
+- **Forgot / reset password:** when **Resend** + `FROM_EMAIL` are configured, the API emails a **single-use Redis token** (`/reset-password?token=…`); otherwise it falls back to **Supabase** `resetPasswordForEmail` (hash recovery in the browser). **`POST /api/v1/auth/reset-password`** accepts `token` + new password for the API-issued flow.
 
 Role labels below: **STUDENT**, **LECTURER**, **HEAD** = `HEAD_LECTURER`.
 
@@ -316,7 +323,7 @@ Router: **Bearer + verified email**.
 
 | Method | Path | Roles | Notes |
 |--------|------|-------|--------|
-| GET | `/courses/list` | Any verified | Options for dropdowns |
+| GET | `/courses/list` | Any verified | Course options for selects (no pagination) |
 | GET | `/courses` | LECTURER, HEAD | Paginated |
 | GET | `/courses/:courseId` | LECTURER, HEAD | |
 | POST | `/courses` | HEAD | |
@@ -410,24 +417,85 @@ Document uploads use **multipart** (`multipart/form-data`). Limits match the API
 | **`DATABASE_URL` vs `DIRECT_URL`** | App runtime can use the **pooler**; migrations, **`prisma db seed`**, and **`pnpm run db:clear`** often need **direct** connection (see `prisma.config.ts` and `.env.example`). |
 | **Redis / rate limit** | If Upstash is down, rate limiting **fails open** (requests are allowed). Check logs and dashboard. |
 | **Secrets** | Never commit **`.env`**. **`SUPABASE_SERVICE_KEY`** and **`RESEND_API_KEY`** are **server-only** — do not expose them to browsers. |
+| **Supabase “RLS disabled”** | Apply latest Prisma migrations (`20260408120000_enable_rls_all_tables`); app tables should have RLS on with no public policies (API-only access via Prisma). |
 | **CI install** | Regenerate and commit **`pnpm-lock.yaml`** if `package.json` changed and CI uses `--frozen-lockfile`. |
 
-## Repository layout (short)
+## Repository layout
+
+Overview of **`api-ts-prisma/`** (paths relative to this folder).
 
 ```
-src/
-  config/       # env, db, redis, rate limits, supabase
-  routes/       # Express routers → /api/v1/...
-  controllers/  # HTTP handlers
-  services/     # business logic + Prisma
-  middleware/   # auth, validation, errors, rate limit
-  validations/  # Zod schemas
-prisma/
-  schema.prisma
-  seed.ts         # optional; `pnpm run db:seed`
-  clear-data.sql  # optional; `pnpm run db:clear` — empty app tables only (no seed)
-  nuke-public.sql # optional; `pnpm run db:nuke` — destroy entire `public` schema (then `prisma migrate deploy`)
+api-ts-prisma/
+├── prisma.config.ts             # Prisma 7 config (datasource / migrate)
+├── package.json
+├── prisma/
+│   ├── schema.prisma
+│   ├── seed.ts                # `pnpm run db:seed`
+│   ├── migrations/            # versioned SQL migrations
+│   ├── clear-data.sql         # `pnpm run db:clear` — truncate app tables
+│   └── nuke-public.sql        # `pnpm run db:nuke` — drop public schema
+├── supabase/                  # reference SQL (e.g. storage policies)
+├── logs/                      # file logs in dev (don’t commit secrets)
+└── src/
+    ├── app.ts                  # Express app: security headers, parsers, `/api/v1` mount
+    ├── server.ts               # `listen` + graceful concerns
+    ├── config/                 # env (Zod), db, redis, supabase, resend, ratelimit, upload
+    ├── routes/                 # Routers mounted under `/api/v1`
+    │   ├── index.ts            # welcome, health, Swagger `/docs`, utility routes, router merge
+    │   ├── auth.routes.ts
+    │   ├── me.routes.ts        # current user + my student/lecturer/head + documents
+    │   ├── students.routes.ts
+    │   ├── courses.routes.ts
+    │   ├── lecturers.routes.ts
+    │   ├── headLecturers.routes.ts
+    │   └── documents.routes.ts # entity-scoped uploads/lists
+    ├── controllers/            # HTTP handlers (thin)
+    │   ├── auth.controller.ts
+    │   ├── me.controller.ts
+    │   ├── students.controller.ts
+    │   ├── courses.controller.ts
+    │   ├── lecturers.controller.ts
+    │   ├── headLecturers.controller.ts
+    │   ├── documents.controller.ts
+    │   └── utility.controller.ts  # enums, stats, health, test-error (dev)
+    ├── services/               # Domain + Prisma (no HTTP)
+    │   ├── auth/               # credentials, oauth, session, password reset, verification, profile password, user payload
+    │   │   ├── index.ts
+    │   │   ├── credentials.service.ts
+    │   │   ├── oauth.service.ts
+    │   │   ├── session.service.ts
+    │   │   ├── passwordReset.service.ts
+    │   │   ├── verification.service.ts
+    │   │   ├── profile.service.ts
+    │   │   └── userPayload.ts
+    │   ├── auth.service.ts     # facade / re-exports as needed
+    │   ├── authBootstrap.service.ts
+    │   ├── createEntityAccount.ts
+    │   ├── students.service.ts
+    │   ├── courses.service.ts
+    │   ├── lecturers.service.ts
+    │   ├── headLecturers.service.ts
+    │   ├── me.service.ts
+    │   ├── documents.service.ts
+    │   └── stats.service.ts
+    ├── middleware/
+    │   ├── auth.middleware.ts
+    │   ├── validateZod.middleware.ts
+    │   ├── errorHandler.middleware.ts
+    │   ├── rateLimit.middleware.ts
+    │   └── requestId.middleware.ts
+    ├── validations/          # Zod schemas per domain
+    │   └── shared/           # pagination, ids, mykad, phone, …
+    ├── redis/                 # Upstash helpers: OTP, refresh rotation, blacklist, reset tokens, signed URL cache
+    ├── docs/
+    │   └── openapiSpec.ts     # OpenAPI object for Swagger UI
+    ├── utils/                 # response envelope, logger, pagination, cookies, storage, auth helpers, …
+    │   └── emails/            # transactional templates (Resend)
+    └── types/
+        └── express.d.ts       # `req.user` augmentation
 ```
+
+**Flow:** `routes/*` → `validateZod` / `auth` / `rateLimit` → `controllers/*` → `services/*` → Prisma / Supabase / Redis.
 
 ## License
 

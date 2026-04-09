@@ -24,7 +24,7 @@ export const validateZod = <T extends z.ZodType>(
 
     if (!result.success) {
       const errors = result.error.issues.map((issue) => ({
-        field: String(issue.path[0] ?? 'field'),
+        field: issue.path.length > 0 ? issue.path.join('.') : 'field',
         message: issue.message,
       }))
       response(res, 400, 'Validation failed', null, 'VALIDATION_ERROR_400', errors)

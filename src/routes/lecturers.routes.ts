@@ -7,12 +7,12 @@ import { lecturerParamsSchema, createLecturerSchema, updateLecturerSchema } from
 
 const router: Router = Router()
 
-router.use(authenticate, requireVerifiedEmail)
+router.use(authenticate, requireVerifiedEmail, authorize('HEAD_LECTURER'))
 
-router.get('/', authorize('HEAD_LECTURER'), validateZod(paginationSchema, 'query'), lecturersController.getAllLecturers)
-router.get('/:lecturerId', authorize('HEAD_LECTURER'), validateZod(lecturerParamsSchema, 'params'), lecturersController.getLecturerById)
-router.post('/', authorize('HEAD_LECTURER'), validateZod(createLecturerSchema, 'body'), lecturersController.createLecturer)
-router.patch('/:lecturerId', authorize('HEAD_LECTURER'), validateZod(lecturerParamsSchema, 'params'), validateZod(updateLecturerSchema, 'body'), lecturersController.updateLecturer)
-router.delete('/:lecturerId', authorize('HEAD_LECTURER'), validateZod(lecturerParamsSchema, 'params'), lecturersController.deleteLecturer)
+router.get('/', validateZod(paginationSchema, 'query'), lecturersController.getAllLecturers)
+router.get('/:lecturerId', validateZod(lecturerParamsSchema, 'params'), lecturersController.getLecturerById)
+router.post('/', validateZod(createLecturerSchema, 'body'), lecturersController.createLecturer)
+router.patch('/:lecturerId', validateZod(lecturerParamsSchema, 'params'), validateZod(updateLecturerSchema, 'body'), lecturersController.updateLecturer)
+router.delete('/:lecturerId', validateZod(lecturerParamsSchema, 'params'), lecturersController.deleteLecturer)
 
 export default router

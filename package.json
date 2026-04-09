@@ -1,6 +1,6 @@
 {
   "name": "api-monash",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Monash College Management System - Backend API (TypeScript + Prisma 7)",
   "type": "module",
   "main": "dist/server.js",

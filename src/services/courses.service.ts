@@ -1,6 +1,8 @@
 import prisma from '../config/db.js'
 import { AppError } from '../utils/AppError.js'
 import { handlePrismaError } from '../utils/prismaErrors.js'
+import { getLecturerScope } from '../utils/resourceAccess.js'
+import type { UserType } from '@prisma/client'
 
 export const getForSelect = async () => {
   return prisma.course.findMany({
@@ -10,7 +12,13 @@ export const getForSelect = async () => {
   })
 }
 
-export const getAll = async (page: number, limit: number, restrictToCourseId?: string) => {
+export const getAll = async (page: number, limit: number, actor: { type: UserType; userId: string }) => {
+  let restrictToCourseId: string | undefined
+  if (actor.type === 'LECTURER') {
+    const lec = await getLecturerScope(actor.userId)
+    if (!lec) throw new AppError('Lecturer record not found', 404, 'LECTURER_NOT_FOUND_404')
+    restrictToCourseId = lec.courseId
+  }
   const skip = (page - 1) * limit
   const where = restrictToCourseId ? { courseId: restrictToCourseId } : {}
   const [items, total] = await Promise.all([

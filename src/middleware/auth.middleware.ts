@@ -1,9 +1,9 @@
 import type { Request, Response, NextFunction } from 'express'
 import { AppError } from '../utils/AppError.js'
 import { supabase } from '../config/supabase.js'
-import prisma from '../config/db.js'
 import type { UserType } from '@prisma/client'
 import { isAccessTokenBlacklisted } from '../redis/accessTokenBlacklist.js'
+import { ensureDbUser } from '../services/authBootstrap.service.js'
 
 export const authenticate = async (req: Request, _res: Response, next: NextFunction) => {
   const header = req.headers.authorization
@@ -23,20 +23,7 @@ export const authenticate = async (req: Request, _res: Response, next: NextFunct
   }
 
   const nameFromAuth = (authUser.user_metadata?.name as string) ?? null
-
-  let dbUser = await prisma.user.findUnique({
-    where: { userId: authUser.id },
-    select: { type: true, status: true, deletedAt: true, name: true },
-  })
-
-  if (!dbUser) {
-    dbUser = await prisma.user.upsert({
-      where: { userId: authUser.id },
-      create: { userId: authUser.id, type: 'STUDENT', status: 'ACTIVE', name: nameFromAuth },
-      update: {},
-      select: { type: true, status: true, deletedAt: true, name: true },
-    })
-  }
+  const dbUser = await ensureDbUser(authUser.id, nameFromAuth)
 
   if (dbUser.deletedAt) {
     throw new AppError('Unauthorized', 401, 'UNAUTHORIZED_401')
@@ -44,14 +31,6 @@ export const authenticate = async (req: Request, _res: Response, next: NextFunct
 
   if (dbUser.status !== 'ACTIVE') {
     throw new AppError('Account is not active', 403, 'ACCOUNT_INACTIVE_403')
-  }
-
-  // Prisma is the source of truth for display name.
-  if (!dbUser.name && nameFromAuth) {
-    await prisma.user.update({
-      where: { userId: authUser.id },
-      data: { name: nameFromAuth },
-    })
   }
 
   const name = dbUser.name ?? nameFromAuth ?? null

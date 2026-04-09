@@ -90,12 +90,24 @@ export async function sendPasswordChangeSecurityEmail(
   <p>If this was <strong>not</strong> you, secure your account immediately:</p>
 
   <p>
-    <a href="${escapeHtml(input.resetUrl)}"
-       style="display:inline-block;padding:10px 20px;background:#111827;color:#fff;
+    <a href="${escapeHtml(input.resetUrl)}" target="_blank"
+       style="display:inline-block;padding:10px 20px;background:#dc2626;color:#fff;
               text-decoration:none;border-radius:6px;font-weight:500;">
-      Reset my password
+      &#9888; Reset my password now
     </a>
   </p>
+  <p style="font-size:12px;color:#6b7280;margin-top:4px;">
+    This link opens in a <strong>new browser tab</strong>. Check your tabs if you don't see the reset page.
+  </p>
+
+  <div style="margin:16px 0;padding:12px 16px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;">
+    <p style="margin:0 0 4px 0;font-size:12px;color:#6b7280;">
+      Or copy this link and paste it into your browser address bar:
+    </p>
+    <p style="margin:0;font-size:13px;color:#111;word-break:break-all;font-family:monospace;">
+      ${escapeHtml(input.resetUrl)}
+    </p>
+  </div>
 
   <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0;" />
 

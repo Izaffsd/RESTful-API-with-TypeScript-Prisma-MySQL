@@ -1,7 +1,7 @@
 import prisma from '../config/db.js'
-import { supabaseAdmin } from '../config/supabase.js'
 import { AppError } from '../utils/AppError.js'
 import { handlePrismaError } from '../utils/prismaErrors.js'
+import { createEntityAccount } from './createEntityAccount.js'
 
 const headLecturerInclude = {
   user: { select: { userId: true, status: true } },
@@ -42,36 +42,19 @@ export const create = async (data: {
   password: string
   mykadNumber?: string
 }) => {
-  const { data: authData, error } = await supabaseAdmin.auth.admin.createUser({
+  const { authUserId } = await createEntityAccount({
     email: data.email,
     password: data.password,
-    email_confirm: true,
-    user_metadata: { name: data.name },
+    name: data.name,
+    userType: 'HEAD_LECTURER',
   })
 
-  if (error) {
-    if (error.message?.toLowerCase().includes('already') || error.message?.toLowerCase().includes('registered')) {
-      throw new AppError('Email already registered', 409, 'DUPLICATE_EMAIL_409')
-    }
-    throw new AppError(error.message ?? 'Failed to create head lecturer', 400, 'CREATE_FAILED_400')
-  }
-
-  if (!authData.user) {
-    throw new AppError('Failed to create head lecturer', 400, 'CREATE_FAILED_400')
-  }
-
   try {
-    await prisma.user.upsert({
-      where: { userId: authData.user.id },
-      create: { userId: authData.user.id, type: 'HEAD_LECTURER', status: 'ACTIVE', name: data.name },
-      update: { type: 'HEAD_LECTURER', name: data.name },
-    })
-
     const headLecturer = await prisma.headLecturer.create({
       data: {
         staffNumber: data.staffNumber,
         mykadNumber: data.mykadNumber ?? null,
-        userId: authData.user.id,
+        userId: authUserId,
       },
       include: headLecturerInclude,
     })
