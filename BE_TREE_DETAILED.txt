@@ -1,71 +1,100 @@
-BE: api-ts-prisma/
-├─ logs/
+BE: api-ts-prisma/  (Express + TypeScript + Prisma + Redis)
+│  Root: package.json, tsconfig.json, prisma.config.ts, ESLint/Husky as configured.
+│  HTTP API base path: **/api/v1** (see src/app.ts).
+│
+├─ .husky/                       (git hooks, if present)
+│
 ├─ prisma/
-│  ├─ migrations/
-│  │  ├─ 20260312021143_init/
-│  │  │  └─ migration.sql
-│  │  ├─ 20260312051415_student_number_course_optional/
-│  │  │  └─ migration.sql
-│  │  ├─ 20260324070200_password_signup_profile_google_link/
-│  │  │  └─ migration.sql
-│  │  ├─ 20260324120000_last_password_change_at/
-│  │  │  └─ migration.sql
-│  │  └─ migration_lock.toml
-│  ├─ seed/
-│  │  └─ seed.sql
-│  ├─ seed.ts
-│  └─ schema.prisma
+│  ├─ schema.prisma              (data model, datasource, generators)
+│  └─ seed.ts                    (db seed script)
+│
+├─ logs/                         (runtime logs, e.g. error.log — typically gitignored)
+│
 └─ src/
-   ├─ app.ts
-   ├─ server.ts
+   ├─ server.ts                  (entry: connect DB, listen PORT, graceful shutdown)
+   ├─ app.ts                     (Express app: helmet, cors, pino-http, /api/v1 routes, static, 404, errorHandler)
+   │
    ├─ config/
-   │  ├─ db.ts
-   │  ├─ env.ts
+   │  ├─ db.ts                   (Prisma client singleton, connectDB)
+   │  ├─ env.ts                  (typed env / configuration)
    │  ├─ ratelimit.ts
    │  ├─ redis.ts
-   │  ├─ resend.ts
+   │  ├─ resend.ts               (email)
    │  ├─ supabase.ts
    │  └─ upload.ts
+   │
+   ├─ routes/
+   │  ├─ index.ts                (mounts: /auth, /me, /students, /courses, /lecturers, /head-lecturers,
+   │  │                            documents routes at '' → nested paths like …/students/:id/documents;
+   │  │                            health, enums, stats; optional Swagger at /docs)
+   │  ├─ auth.routes.ts
+   │  ├─ me.routes.ts
+   │  ├─ students.routes.ts
+   │  ├─ courses.routes.ts
+   │  ├─ lecturers.routes.ts
+   │  ├─ headLecturers.routes.ts
+   │  └─ documents.routes.ts
+   │
    ├─ controllers/
    │  ├─ auth.controller.ts
-   │  ├─ courses.controller.ts
-   │  ├─ documents.controller.ts
-   │  ├─ headLecturers.controller.ts
-   │  ├─ lecturers.controller.ts
    │  ├─ me.controller.ts
    │  ├─ students.controller.ts
-   │  └─ utility.controller.ts
+   │  ├─ courses.controller.ts
+   │  ├─ lecturers.controller.ts
+   │  ├─ headLecturers.controller.ts
+   │  ├─ documents.controller.ts
+   │  └─ utility.controller.ts   (enums, stats — wired in routes/index.ts)
+   │
+   ├─ services/                  (business logic; controllers stay thin)
+   │  ├─ auth.service.ts
+   │  ├─ auth/
+   │  │  ├─ index.ts
+   │  │  ├─ credentials.service.ts
+   │  │  ├─ oauth.service.ts
+   │  │  ├─ passwordReset.service.ts
+   │  │  ├─ profile.service.ts
+   │  │  ├─ session.service.ts
+   │  │  ├─ userPayload.ts
+   │  │  └─ verification.service.ts
+   │  ├─ authBootstrap.service.ts
+   │  ├─ createEntityAccount.ts
+   │  ├─ courses.service.ts
+   │  ├─ documents.service.ts
+   │  ├─ headLecturers.service.ts
+   │  ├─ lecturers.service.ts
+   │  ├─ me.service.ts
+   │  ├─ stats.service.ts
+   │  └─ students.service.ts
+   │
    ├─ middleware/
-   │  ├─ auth.middleware.ts
+   │  ├─ auth.middleware.ts      (JWT / roles / verified email helpers)
    │  ├─ errorHandler.middleware.ts
    │  ├─ rateLimit.middleware.ts
    │  ├─ requestId.middleware.ts
    │  └─ validateZod.middleware.ts
-   ├─ redis/
+   │
+   ├─ validations/               (Zod schemas; pair with validateZod middleware)
+   │  ├─ authValidation.ts
+   │  ├─ courseValidation.ts
+   │  ├─ documentValidation.ts
+   │  ├─ headLecturerValidation.ts
+   │  ├─ lecturerValidation.ts
+   │  ├─ profileValidation.ts
+   │  ├─ studentValidation.ts
+   │  └─ shared/
+   │     ├─ id.validation.ts
+   │     ├─ mykad.validation.ts
+   │     ├─ paginationSchema.ts
+   │     └─ phone.validation.ts
+   │
+   ├─ redis/                     (token / OTP / cache helpers)
    │  ├─ accessTokenBlacklist.ts
    │  ├─ crypto.ts
    │  ├─ emailVerifyOtp.ts
    │  ├─ passwordResetToken.ts
    │  ├─ refreshTokenRotation.ts
    │  └─ signedUrlCache.ts
-   ├─ routes/
-   │  ├─ auth.routes.ts
-   │  ├─ courses.routes.ts
-   │  ├─ documents.routes.ts
-   │  ├─ headLecturers.routes.ts
-   │  ├─ index.ts
-   │  ├─ lecturers.routes.ts
-   │  ├─ me.routes.ts
-   │  └─ students.routes.ts
-   ├─ services/
-   │  ├─ auth.service.ts
-   │  ├─ courses.service.ts
-   │  ├─ documents.service.ts
-   │  ├─ headLecturers.service.ts
-   │  ├─ lecturers.service.ts
-   │  └─ students.service.ts
-   ├─ types/
-   │  └─ express.d.ts
+   │
    ├─ utils/
    │  ├─ AppError.ts
    │  ├─ authIdentities.ts
@@ -76,22 +105,26 @@ BE: api-ts-prisma/
    │  ├─ logger.ts
    │  ├─ pagination.ts
    │  ├─ prismaErrors.ts
-   │  ├─ response.ts
+   │  ├─ requestLogFields.ts
+   │  ├─ resourceAccess.ts
+   │  ├─ response.ts             (JSON envelope helper)
    │  ├─ storage.ts
    │  └─ emails/
    │     ├─ emailVerifyOtp.email.ts
    │     ├─ passwordChange.email.ts
    │     └─ passwordReset.email.ts
-   └─ validations/
-      ├─ authValidation.ts
-      ├─ courseValidation.ts
-      ├─ documentValidation.ts
-      ├─ headLecturerValidation.ts
-      ├─ lecturerValidation.ts
-      ├─ profileValidation.ts
-      ├─ studentValidation.ts
-      └─ shared/
-         ├─ id.validation.ts
-         ├─ mykad.validation.ts
-         ├─ paginationSchema.ts
-         └─ phone.validation.ts
+   │
+   ├─ docs/
+   │  └─ openapiSpec.ts          (OpenAPI doc for Swagger UI when API_DOCS_ENABLED)
+   │
+   └─ types/
+      └─ express.d.ts            (extend Express Request with user, etc.)
+
+──────────────────────────────────────────────────────────────────────────────
+Request flow (typical):
+  server.ts → app.ts → /api/v1 → routes/*.routes.ts → controller → service → Prisma / Redis / storage
+
+Public endpoints (examples):
+  GET  /api/v1/           (welcome JSON)
+  GET  /api/v1/health     (DB ping)
+  GET  /api/v1/docs       (Swagger UI, if enabled)
